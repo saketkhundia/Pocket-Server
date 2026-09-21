@@ -24,17 +24,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +51,9 @@ import androidx.compose.ui.unit.dp
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
 import com.saketkhundia.pocketserver.presentation.components.EmptyState
 import com.saketkhundia.pocketserver.presentation.components.MonoText
+import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassButton
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSecondaryButton
 import com.saketkhundia.pocketserver.presentation.home.rememberSharedHomeViewModel
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +71,7 @@ fun QrScreen(onBack: () -> Unit) {
     val vm = rememberSharedHomeViewModel()
     // Narrow collector: server state only. The full uiState also carries
     // stats/logs (per-request emissions during transfers) — irrelevant here.
-    val serverState by vm.serverState.collectAsState()
+    val serverState by vm.serverState.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
 
     val url = serverState.url
@@ -96,6 +98,8 @@ fun QrScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
+        Box(Modifier.fillMaxSize()) {
+            GlassBackground(Modifier.fillMaxSize())
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -153,24 +157,21 @@ fun QrScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
+                    LiquidGlassSecondaryButton(
+                        label = "Copy link",
                         onClick = { clipboard.setText(AnnotatedString(url)) },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Filled.ContentCopy, null, Modifier.size(18.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text("Copy link")
-                    }
-                    FilledTonalButton(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.ContentCopy
+                    )
+                    LiquidGlassButton(
+                        label = "Share",
                         onClick = { vm.shareUrl(ctx) },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Filled.Share, null, Modifier.size(18.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text("Share")
-                    }
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Share
+                    )
                 }
             }
+        }
         }
     }
 }

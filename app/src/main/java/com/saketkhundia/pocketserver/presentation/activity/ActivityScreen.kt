@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -21,8 +25,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +44,8 @@ import com.saketkhundia.pocketserver.presentation.components.EmptyState
 import com.saketkhundia.pocketserver.presentation.components.Eyebrow
 import com.saketkhundia.pocketserver.presentation.components.GlassCard
 import com.saketkhundia.pocketserver.presentation.components.activityKindOf
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassChip
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSearchBar
 import com.saketkhundia.pocketserver.presentation.logs.LogsViewModel
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import com.saketkhundia.pocketserver.util.FormatUtils
@@ -51,12 +61,32 @@ fun ActivityScreen(onOpenLogs: () -> Unit) {
     val ctx = LocalContext.current
     val app = ctx.applicationContext as PocketServerApp
     val vm: LogsViewModel = viewModel(factory = LogsViewModel.factory(app))
-    val logs by vm.logs.collectAsState()
+    val logs by vm.logs.collectAsStateWithLifecycle()
+
+    // Filter + search — preserved across tab switches via saveable + back-stack
+    // restore. Filtering is a cheap in-memory pass over capped rows.
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf(0) }
 
     // Cap rendered rows: full history stays in Server logs. Rendering hundreds
     // of rows on first composition is what made tab switches feel laggy.
     val recent = remember(logs) { logs.take(MAX_ROWS) }
-    val groups = rememberGroups(recent)
+    val filtered = remember(recent, query, filter) {
+        val q = query.trim()
+        recent.filter { log ->
+            val passFilter = when (filter) {
+                1 -> log.method == "START" || log.method == "STOP" || log.method == "NETWORK" || log.method.startsWith("FTP_") && (log.method.endsWith("START") || log.method.endsWith("STOP"))
+                2 -> log.method == "GET" || log.method == "HEAD" || log.method == "POST" || log.method == "DELETE" || log.method == "PUT" || log.method.startsWith("FTP")
+                3 -> log.method == "POST" || (log.method.startsWith("FTP") && log.method.contains("STOR"))
+                4 -> log.method == "GET" || log.method == "HEAD"
+                5 -> log.path.contains(".jpg", true) || log.path.contains(".png", true) || log.path.contains(".jpeg", true) || log.path.contains(".webp", true) || log.path.contains(".heic", true) || log.method == "PHOTO"
+                else -> true
+            }
+            val passQuery = q.isBlank() || log.path.contains(q, true) || log.clientIp.contains(q, true) || log.method.contains(q, true)
+            passFilter && passQuery
+        }
+    }
+    val groups = rememberGroups(filtered)
     val hasMore = logs.size > recent.size
 
     Scaffold(
@@ -71,14 +101,38 @@ fun ActivityScreen(onOpenLogs: () -> Unit) {
         Box(Modifier.fillMaxSize()) {
             AmoledBackground(Modifier.fillMaxSize())
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+                // Standalone rows with even 8dp rhythm (headers included).
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (logs.isEmpty()) {
+                item(key = "search", contentType = "search") {
+                    LiquidGlassSearchBar(
+                        value = query, onValue = { query = it },
+                        placeholder = "Search activity…",
+                        leading = Icons.Outlined.Search,
+                        onClear = { query = "" }
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+                item(key = "filters", contentType = "filters") {
+                    val filters = listOf("All", "Server", "Files", "Uploads", "Downloads", "Photos")
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 2.dp)
+                    ) {
+                        items(filters.size, key = { filters[it] }) { i ->
+                            LiquidGlassChip(label = filters[i], selected = filter == i, onClick = { filter = i })
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+                if (filtered.isEmpty()) {
                     item(key = "empty", contentType = "empty") {
                         GlassCard(modifier = Modifier.fillMaxWidth()) {
                             EmptyState(
-                                title = "No activity yet",
-                                subtitle = "Start your server and connect another device."
+                                title = if (logs.isEmpty()) "No activity yet" else "No matches",
+                                subtitle = if (logs.isEmpty()) "Start your server and connect another device."
+                                else "Try a different search or filter."
                             )
                         }
                     }

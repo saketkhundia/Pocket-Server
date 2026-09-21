@@ -16,26 +16,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +50,13 @@ import com.saketkhundia.pocketserver.domain.model.AppSettings
 import com.saketkhundia.pocketserver.domain.model.AppThemeMode
 import com.saketkhundia.pocketserver.presentation.components.DialogEntrance
 import com.saketkhundia.pocketserver.presentation.components.Eyebrow
+import com.saketkhundia.pocketserver.presentation.glass.GlassLevel
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassDialog
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassListItem
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSurface
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSwitch
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassTextField
+import com.saketkhundia.pocketserver.presentation.glass.LocalGlassColors
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 
 /**
@@ -68,9 +73,9 @@ fun SettingsScreen(
     val ctx = LocalContext.current
     val app = ctx.applicationContext as PocketServerApp
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(app))
-    val settings by vm.settings.collectAsState()
-    val folders by vm.folders.collectAsState()
-    val msg by vm.message.collectAsState()
+    val settings by vm.settings.collectAsStateWithLifecycle()
+    val folders by vm.folders.collectAsStateWithLifecycle()
+    val msg by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
     var dialog by remember { mutableStateOf<EditTarget?>(null) }
@@ -79,22 +84,14 @@ fun SettingsScreen(
     LaunchedEffect(msg) { msg?.let { snackbar.showSnackbar(it); vm.clearMessage() } }
 
     if (showResetConfirm) {
-        // Shared subtle entrance: fade + 0.96 → 1.0 scale, 180ms, no bounce.
         DialogEntrance {
-            AlertDialog(
-                onDismissRequest = { showResetConfirm = false },
-                title = { Text("Reset sign-in?") },
-                text = {
-                    Text(
-                        "Restores admin / admin, signs out all browsers and clears login blocks. Change the password right after.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = { showResetConfirm = false; vm.resetSignIn() }) { Text("Reset") }
-                },
-                dismissButton = { TextButton(onClick = { showResetConfirm = false }) { Text("Cancel") } },
-                shape = RoundedCornerShape(20.dp)
+            LiquidGlassDialog(
+                title = "Reset sign-in?",
+                body = "Restores admin / admin, signs out all browsers and clears login blocks. Change the password right after.",
+                primaryLabel = "Reset",
+                onPrimary = { showResetConfirm = false; vm.resetSignIn() },
+                secondaryLabel = "Cancel",
+                onDismiss = { showResetConfirm = false }
             )
         }
     }
@@ -248,74 +245,68 @@ private fun SettingsGroup(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun ValueRow(label: String, value: String, onClick: () -> Unit) {
+    val g = LocalGlassColors.current
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        LiquidGlassListItem(
+            title = label, subtitle = null,
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(value, style = MaterialTheme.typography.bodySmall, color = g.textSecondary)
+                    Spacer(Modifier.width(6.dp))
+                    androidx.compose.material3.Icon(Icons.Outlined.ChevronRight, null, tint = g.textTertiary, modifier = Modifier.size(18.dp))
+                }
+            },
+            onClick = onClick
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
 private fun SwitchRow(label: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.bodyMedium)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(checked = checked, onCheckedChange = onChange)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        LiquidGlassListItem(
+            title = label, subtitle = subtitle,
+            trailing = { LiquidGlassSwitch(checked = checked, onChange = onChange) },
+            onClick = { onChange(!checked) }
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
 private fun NavRow(label: String, destructive: Boolean = false, onClick: () -> Unit) {
+    val g = LocalGlassColors.current
     Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-            )
-            Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        LiquidGlassListItem(
+            title = label, subtitle = null,
+            trailing = {
+                androidx.compose.material3.Icon(
+                    Icons.Outlined.ChevronRight, null,
+                    tint = if (destructive) g.error else g.textTertiary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
+            onClick = onClick
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
 private fun ThemeRow(current: AppThemeMode, onPick: (AppThemeMode) -> Unit) {
-    Column {
+    val g = LocalGlassColors.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(AppThemeMode.SYSTEM, AppThemeMode.DARK, AppThemeMode.LIGHT).forEach { mode ->
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { onPick(mode) }
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodyMedium)
-                if (mode == current) {
-                    Text("Active", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            val label = mode.name.lowercase().replaceFirstChar { it.uppercase() }
+            LiquidGlassListItem(
+                title = label, subtitle = null,
+                selected = mode == current,
+                trailing = {
+                    if (mode == current) Text("Active", style = MaterialTheme.typography.labelLarge, color = g.goldSoft)
+                },
+                onClick = { onPick(mode) }
+            )
         }
     }
 }
@@ -340,57 +331,36 @@ private fun EditDialog(
     }
     var value by remember { mutableStateOf(initial) }
     var extra by remember { mutableStateOf("") }
+    val g = LocalGlassColors.current
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = {
-                        value = if (numeric) it.filter { c -> c.isDigit() }.take(5) else it.take(64)
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (isPasswordChange) {
-                    OutlinedTextField(
-                        value = extra,
-                        onValueChange = { extra = it },
-                        label = { Text("New password") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        "Changing credentials signs out all browsers.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (numeric && target != EditTarget.Timeout) {
-                    Text(
-                        "Use ports 1024–65535.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+    LiquidGlassSurface(level = GlassLevel.L3, radius = com.saketkhundia.pocketserver.presentation.glass.GlassShapes.large, glow = g.gold, glowAlpha = 0.10f, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, color = g.textPrimary)
+            LiquidGlassTextField(
+                value = value,
+                onValue = { value = if (numeric) it.filter { c -> c.isDigit() }.take(5) else it.take(64) },
+                placeholder = title
+            )
+            if (isPasswordChange) {
+                LiquidGlassTextField(value = extra, onValue = { extra = it }, placeholder = "New password")
+                Text("Changing credentials signs out all browsers.", style = MaterialTheme.typography.bodySmall, color = g.textSecondary)
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (isPasswordChange) {
-                        if (value.isBlank() || extra.length < 4) return@TextButton
-                    } else if (value.isBlank()) return@TextButton
-                    onConfirm(value.trim(), extra.ifBlank { null })
-                }
-            ) { Text("Save") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        shape = RoundedCornerShape(20.dp)
-    )
+            if (numeric && target != EditTarget.Timeout) {
+                Text("Use ports 1024–65535.", style = MaterialTheme.typography.bodySmall, color = g.textSecondary)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSecondaryButton("Cancel", onDismiss, Modifier.weight(1f))
+                com.saketkhundia.pocketserver.presentation.glass.LiquidGlassButton(
+                    "Save",
+                    onClick = {
+                        if (isPasswordChange) {
+                            if (value.isBlank() || extra.length < 4) return@LiquidGlassButton
+                        } else if (value.isBlank()) return@LiquidGlassButton
+                        onConfirm(value.trim(), extra.ifBlank { null })
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
 }

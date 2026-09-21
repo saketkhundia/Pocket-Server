@@ -25,15 +25,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,6 +39,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +55,9 @@ import com.saketkhundia.pocketserver.presentation.components.AmoledBackground
 import com.saketkhundia.pocketserver.presentation.components.EmptyState
 import com.saketkhundia.pocketserver.presentation.components.FileRow
 import com.saketkhundia.pocketserver.presentation.components.GlassCard
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassIconButton
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSearchBar
+import com.saketkhundia.pocketserver.presentation.glass.LocalGlassColors
 import com.saketkhundia.pocketserver.presentation.home.rememberSharedHomeViewModel
 import com.saketkhundia.pocketserver.presentation.theme.LocalPsExtra
 import com.saketkhundia.pocketserver.presentation.theme.PsRadius
@@ -77,8 +76,8 @@ fun FilesScreen() {
     // Narrow collectors: folders + errors only. The full uiState also carries
     // stats/logs, which emit per HTTP request during transfers — collecting it
     // here recomposed the whole screen (including the search field) per request.
-    val folders by vm.foldersFlow.collectAsState()
-    val errorMessage by vm.errorMessage.collectAsState()
+    val folders by vm.foldersFlow.collectAsStateWithLifecycle()
+    val errorMessage by vm.errorMessage.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var query by remember { mutableStateOf("") }
     // First-visit row stagger only (saveable across back-stack restore).
@@ -126,12 +125,11 @@ fun FilesScreen() {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            LiquidGlassIconButton(
                 onClick = { folderPicker.launch(null) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                size = 56.dp
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add folder")
+                Icon(Icons.Filled.Add, contentDescription = "Add folder", tint = LocalGlassColors.current.goldSoft)
             }
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -142,33 +140,15 @@ fun FilesScreen() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(PsSpacing.md)
             ) {
-                // Search smoothly expands in place; clear button fades rather
-                // than popping. Results cross-fade without flashing the screen.
+                // Search — liquid glass, gold focus glow handled inside.
                 item(key = "search", contentType = "search") {
-                    OutlinedTextField(
+                    LiquidGlassSearchBar(
                         value = query,
-                        onValueChange = { query = it },
-                        placeholder = { Text("Search folders…") },
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = {
-                            AnimatedVisibility(
-                                visible = query.isNotEmpty(),
-                                enter = fadeIn(tween(150, easing = FastOutSlowInEasing)),
-                                exit = fadeOut(tween(120)),
-                                label = "searchClear"
-                            ) {
-                                IconButton(onClick = { query = "" }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(PsRadius.lg),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = LocalPsExtra.current.subtleBorder,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.fillMaxWidth().animateItem()
+                        onValue = { query = it },
+                        placeholder = "Search folders…",
+                        leading = Icons.Outlined.Search,
+                        onClear = { query = "" },
+                        modifier = Modifier.animateItem()
                     )
                 }
                 // Container cross-fades between empty / list — never flashes.

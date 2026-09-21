@@ -72,12 +72,38 @@ class HttpServerManager(
     private val seenIps = ConcurrentHashMap.newKeySet<String>()
     private var startedAt: Long? = null
 
+    // Live-cached settings/folders for per-request reads.
+    // Previously each HTTP request ran runBlocking { DataStore.snapshot() },
+    // blocking a Ktor event-loop thread on disk IO per request — during a
+    // gallery load (hundreds of requests) this stalled the server and janked
+    // the UI observers. Now collectors keep volatile copies fresh; request
+    // handlers read plain fields with zero blocking.
+    @Volatile private var cachedName = "Pocket Server"
+    @Volatile private var cachedWebMode = false
+    @Volatile private var cachedWebRoot: String? = null
+    @Volatile private var cachedPort = 8080
+    @Volatile private var cachedFolders: List<com.saketkhundia.pocketserver.domain.model.SharedFolder> = emptyList()
+
+    init {
+        appScope.launch {
+            try { settingsRepo.settings.collect { s ->
+                cachedName = s.serverName.ifBlank { "Pocket Server" }
+                cachedWebMode = s.webServerMode
+                cachedWebRoot = s.webRootFolderId
+                cachedPort = s.httpPort
+            } } catch (_: Exception) {}
+        }
+        appScope.launch {
+            try { sharedFolderRepo.folders.collect { cachedFolders = it } } catch (_: Exception) {}
+        }
+    }
+
     val isRunning: Boolean get() = engine != null
 
-    fun currentUrl(): String? {
-        val ip = LocalIpProvider.getLocalIpv4(context) ?: return null
-        val port = runCatching { kotlinx.coroutines.runBlocking { settingsRepo.snapshot().httpPort } }.getOrDefault(8080)
-        return "http://$ip:$port"
+    /** Non-blocking: uses cached port; IP enumeration is caller-thread work. */
+    suspend fun currentUrl(): String? = withContext(Dispatchers.IO) {
+        val ip = LocalIpProvider.getLocalIpv4(context) ?: return@withContext null
+        "http://$ip:$cachedPort"
     }
 
     /** Returns all candidates for diagnostics (useful when primary IP fails). */
@@ -104,6 +130,10 @@ class HttpServerManager(
             return Result.failure(IllegalStateException("Server already running"))
         }
         val settings = settingsRepo.snapshot()
+        cachedName = settings.serverName.ifBlank { "Pocket Server" }
+        cachedWebMode = settings.webServerMode
+        cachedWebRoot = settings.webRootFolderId
+        cachedPort = settings.httpPort
         val port = settings.httpPort
         val validation = com.saketkhundia.pocketserver.domain.usecase.ValidatePortUseCase.validate(port)
         if (validation is com.saketkhundia.pocketserver.domain.usecase.ValidatePortUseCase.Result.Invalid) {
@@ -139,10 +169,10 @@ class HttpServerManager(
             auth = auth,
             folders = folders,
             storage = storage,
-            serverName = { runCatching { kotlinx.coroutines.runBlocking { settingsRepo.snapshot().serverName } }.getOrDefault("Pocket Server") },
-            webMode = { runCatching { kotlinx.coroutines.runBlocking { settingsRepo.snapshot().webServerMode } }.getOrDefault(false) },
-            webRootId = { runCatching { kotlinx.coroutines.runBlocking { settingsRepo.snapshot().webRootFolderId } }.getOrDefault(null) },
-            sharedSnapshot = { sharedFolderRepo.snapshot() },
+            serverName = { cachedName },
+            webMode = { cachedWebMode },
+            webRootId = { cachedWebRoot },
+            sharedSnapshot = { cachedFolders },
             onRequest = { method, path, status, clientIp, bytesDown, bytesUp ->
                 // sanitize: never log tokens, passwords, or file contents
                 val safePath = path.take(512).replace(SESSION_COOKIE_REGEX, "ps_session=***")

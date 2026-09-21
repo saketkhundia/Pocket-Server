@@ -22,12 +22,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.RocketLaunch
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,6 +36,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.saketkhundia.pocketserver.PocketServerApp
+import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassButton
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSecondaryButton
+import com.saketkhundia.pocketserver.presentation.glass.LocalGlassColors
 import com.saketkhundia.pocketserver.presentation.theme.PsRadius
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.launch
@@ -58,6 +60,8 @@ fun OnboardingScreen(onDone: () -> Unit) {
     }
 
     Scaffold { padding ->
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+            GlassBackground(Modifier.fillMaxSize())
         Column(
             Modifier.fillMaxSize().padding(padding).padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -97,25 +101,28 @@ fun OnboardingScreen(onDone: () -> Unit) {
             Dots(current = pagerState.currentPage, total = 3)
             Spacer(Modifier.height(PsSpacing.xl))
             if (pagerState.currentPage < 2) {
-                Button(
+                LiquidGlassButton(
+                    label = "Next",
                     onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(PsRadius.lg)
-                ) { Text("Next") }
-                TextButton(onClick = { finish() }) { Text("Skip") }
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                LiquidGlassSecondaryButton(label = "Skip", onClick = { finish() }, modifier = Modifier.fillMaxWidth())
             } else {
-                Button(
+                LiquidGlassButton(
+                    label = "Get started",
                     onClick = { finish() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(PsRadius.lg)
-                ) { Text("Get started") }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
+        }
         }
     }
 }
 
 @Composable
 private fun Dots(current: Int, total: Int) {
+    val g = LocalGlassColors.current
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(total) { i ->
             val selected = i == current
@@ -130,8 +137,8 @@ private fun Dots(current: Int, total: Int) {
                     .height(8.dp)
                     .width(dotWidth)
                     .background(
-                        if (selected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant,
+                        if (selected) g.gold
+                        else g.textTertiary.copy(alpha = 0.35f),
                         RoundedCornerShape(4.dp)
                     )
             )

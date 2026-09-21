@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import com.saketkhundia.pocketserver.presentation.components.ActivityIcon
 import com.saketkhundia.pocketserver.presentation.components.EmptyState
 import com.saketkhundia.pocketserver.presentation.components.MonoText
 import com.saketkhundia.pocketserver.presentation.components.activityKindOf
+import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import com.saketkhundia.pocketserver.util.FormatUtils
 
@@ -47,7 +49,7 @@ fun LogsScreen(onBack: () -> Unit) {
     val ctx = LocalContext.current
     val app = ctx.applicationContext as PocketServerApp
     val vm: LogsViewModel = viewModel(factory = LogsViewModel.factory(app))
-    val logs by vm.logs.collectAsState()
+    val logs by vm.logs.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -60,6 +62,8 @@ fun LogsScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+            GlassBackground(Modifier.fillMaxSize())
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -128,6 +132,7 @@ fun LogsScreen(onBack: () -> Unit) {
                 }
             }
             item { Spacer(Modifier.height(80.dp)) }
+        }
         }
     }
 }

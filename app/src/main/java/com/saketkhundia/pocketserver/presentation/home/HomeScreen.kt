@@ -35,18 +35,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,7 +72,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
 import com.saketkhundia.pocketserver.presentation.components.ActivityRow
 import com.saketkhundia.pocketserver.presentation.components.AmoledBackground
@@ -106,15 +109,17 @@ fun HomeScreen(
     val vm = rememberSharedHomeViewModel()
     // Isolated collectors — each slice recomposes only its section. Stats ticks,
     // upload progress and log lines never rebuild the whole screen.
-    val serverState by vm.serverState.collectAsState()
-    val folders by vm.foldersFlow.collectAsState()
-    val settings by vm.settingsFlow.collectAsState()
-    val recentLogs by vm.recentLogs.collectAsState()
-    val ipAddress by vm.localIpFlow.collectAsState()
-    val storage by vm.storageStats.collectAsState()
-    val troubleshoot by vm.troubleshootHint.collectAsState()
-    val candidates by vm.allCandidates.collectAsState()
-    val errorMessage by vm.errorMessage.collectAsState()
+    // Lifecycle-aware: collectors stop when the tab is in background, so rapid
+    // tab switches never stack duplicate subscriptions. Slices stay isolated.
+    val serverState by vm.serverState.collectAsStateWithLifecycle()
+    val folders by vm.foldersFlow.collectAsStateWithLifecycle()
+    val settings by vm.settingsFlow.collectAsStateWithLifecycle()
+    val recentLogs by vm.recentLogs.collectAsStateWithLifecycle()
+    val ipAddress by vm.localIpFlow.collectAsStateWithLifecycle()
+    val storage by vm.storageStats.collectAsStateWithLifecycle()
+    val troubleshoot by vm.troubleshootHint.collectAsStateWithLifecycle()
+    val candidates by vm.allCandidates.collectAsStateWithLifecycle()
+    val errorMessage by vm.errorMessage.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -144,12 +149,12 @@ fun HomeScreen(
             AmoledBackground(Modifier.fillMaxSize())
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(PsSpacing.lg)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // ── Header ──
+                // ── Header: identity first, 28-30sp tight, 44dp glass buttons ──
                 item(key = "header", contentType = "header") {
                     Entrance(visible = entered, delay = 0) {
-                        Spacer(Modifier.height(PsSpacing.sm))
+                        Spacer(Modifier.height(20.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -160,7 +165,7 @@ fun HomeScreen(
                                     style = MaterialTheme.typography.displayMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Spacer(Modifier.height(2.dp))
+                                Spacer(Modifier.height(4.dp))
                                 Text(
                                     "Your phone. Your server.",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -171,13 +176,14 @@ fun HomeScreen(
                                 onClick = onOpenActivity,
                                 dot = status == ServerStatus.RUNNING
                             ) {
-                                Icon(Icons.Filled.Notifications, contentDescription = "Activity")
+                                Icon(Icons.Outlined.Notifications, contentDescription = "Activity")
                             }
                             Spacer(Modifier.width(10.dp))
                             HeaderIconButton(onClick = onOpenSettings) {
-                                Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
                             }
                         }
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
 
@@ -238,9 +244,10 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Recent activity ──
+                // ── Recent activity: breathing room, 16-18sp header, 62dp rows ──
                 item(key = "activity", contentType = "activity") {
                     Entrance(visible = entered, delay = 120) {
+                        Spacer(Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -252,15 +259,15 @@ fun HomeScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text("Recent Activity", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                            Text("Recent Activity", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                             Text(
                                 "View all  →",
-                                style = MaterialTheme.typography.labelLarge,
+                                style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.clickable(onClick = onOpenActivity).padding(4.dp)
+                                modifier = Modifier.clickable(onClick = onOpenActivity).padding(8.dp)
                             )
                         }
-                        Spacer(Modifier.height(PsSpacing.sm))
+                        Spacer(Modifier.height(12.dp))
                     if (recentLogs.isEmpty()) {
                         GlassCard(modifier = Modifier.fillMaxWidth()) {
                             EmptyState(
@@ -269,17 +276,17 @@ fun HomeScreen(
                             )
                         }
                     } else {
-                        GlassCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(horizontal = PsSpacing.lg, vertical = 6.dp)) {
-                                recentLogs.forEachIndexed { i, log ->
-                                    ActivityRow(
-                                        title = activityTitle(log.method, log.path),
-                                        time = FormatUtils.relativeTime(log.timestampMs),
-                                        kind = activityKindOf(log.method, log.status),
-                                        showDivider = i < recentLogs.size - 1,
-                                        onClick = onOpenActivity
-                                    )
-                                }
+                        // Standalone white rows (no nested card-in-card):
+                        // each row owns its surface, borders never stack.
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            recentLogs.forEach { log ->
+                                ActivityRow(
+                                    title = activityTitle(log.method, log.path),
+                                    time = FormatUtils.relativeTime(log.timestampMs),
+                                    kind = activityKindOf(log.method, log.status),
+                                    showDivider = false,
+                                    onClick = onOpenActivity
+                                )
                             }
                         }
                     }
@@ -368,7 +375,7 @@ fun HomeScreen(
                     }
                 }
 
-                item(key = "spacer", contentType = "spacer") { Spacer(Modifier.height(110.dp)) }
+                item(key = "spacer", contentType = "spacer") { Spacer(Modifier.height(124.dp)) }
             }
         }
     }
@@ -408,7 +415,7 @@ private fun HeaderIconButton(
     val extra = LocalPsExtra.current
     Box(
         modifier = Modifier
-            .size(46.dp)
+            .size(44.dp)
             .clip(CircleShape)
             .background(extra.glass)
             .border(1.dp, extra.subtleBorder, CircleShape)
@@ -498,10 +505,13 @@ private fun HeroCard(
                 ServerGraphic(
                     running = running,
                     modifier = Modifier
-                        .size(width = 88.dp, height = 116.dp)
+                        .padding(top = 4.dp)
+                        .size(width = 80.dp, height = 104.dp)
                         .graphicsLayer {
                             scaleX = graphicScale
                             scaleY = graphicScale
+                            // Spec presence: subtle but visible in both themes.
+                            alpha = 0.8f
                         }
                 )
             }
@@ -562,7 +572,7 @@ private fun HeroCard(
                     1 -> GradientButton(
                         label = "Stop Server",
                         onClick = onStop,
-                        icon = Icons.Filled.Stop,
+                        icon = Icons.Outlined.Stop,
                         modifier = Modifier.fillMaxWidth()
                     )
                     2 -> GradientButton(
@@ -570,7 +580,7 @@ private fun HeroCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                     else -> GradientButton(
-                        label = "Start Server", onClick = onStart, icon = Icons.Filled.PlayArrow,
+                        label = "Start Server", onClick = onStart, icon = Icons.Outlined.PlayArrow,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -586,22 +596,22 @@ private fun HeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 QuickAction(
-                    icon = Icons.Filled.Folder, title = "Share Files", subtitle = "Anywhere",
+                    icon = Icons.Outlined.Folder, title = "Share Files", subtitle = "Anywhere",
                     onClick = onOpenFiles, modifier = Modifier.weight(1f)
                 )
                 QuickDivider()
                 QuickAction(
-                    icon = Icons.Filled.Image, title = "Photos", subtitle = "Backup",
+                    icon = Icons.Outlined.Image, title = "Photos", subtitle = "Backup",
                     onClick = onOpenPhotos, modifier = Modifier.weight(1f)
                 )
                 QuickDivider()
                 QuickAction(
-                    icon = Icons.Filled.PlayArrow, title = "Media", subtitle = "Instant",
+                    icon = Icons.Outlined.PlayArrow, title = "Media", subtitle = "Instant",
                     onClick = onOpenMedia, modifier = Modifier.weight(1f)
                 )
                 QuickDivider()
                 QuickAction(
-                    icon = Icons.Filled.Language, title = "Web Server", subtitle = "Website",
+                    icon = Icons.Outlined.Language, title = "Web Server", subtitle = "Website",
                     onClick = onOpenSettings, modifier = Modifier.weight(1f)
                 )
             }
@@ -614,7 +624,7 @@ private fun QuickDivider() {
     Box(
         Modifier
             .width(1.dp)
-            .height(56.dp)
+            .height(64.dp)
             .background(LocalPsExtra.current.subtleBorder)
     )
 }
@@ -622,9 +632,9 @@ private fun QuickDivider() {
 @Composable
 private fun FoldersCard(count: Int, names: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     GlassCard(modifier = modifier, onClick = onClick) {
-        Column(Modifier.padding(PsSpacing.lg)) {
+        Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Folder, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Icon(Icons.Outlined.Folder, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Shared Folders", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 Icon(Icons.Filled.ChevronRight, null, tint = LocalPsExtra.current.tertiaryText, modifier = Modifier.size(18.dp))
@@ -632,7 +642,11 @@ private fun FoldersCard(count: Int, names: String, onClick: () -> Unit, modifier
             Spacer(Modifier.height(PsSpacing.md))
             Text(
                 "$count",
-                style = MaterialTheme.typography.displayMedium
+                // Spec hierarchy: section number 22sp semibold.
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -654,9 +668,9 @@ private fun StorageCard(
     modifier: Modifier = Modifier
 ) {
     GlassCard(modifier = modifier) {
-        Column(Modifier.padding(PsSpacing.lg)) {
+        Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.PieChart, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Icon(Icons.Outlined.PieChart, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Storage", style = MaterialTheme.typography.titleSmall)
             }

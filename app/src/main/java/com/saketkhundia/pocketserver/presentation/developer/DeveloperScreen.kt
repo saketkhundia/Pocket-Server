@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
 import com.saketkhundia.pocketserver.presentation.components.Eyebrow
 import com.saketkhundia.pocketserver.presentation.components.MonoText
+import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassListItem
 import com.saketkhundia.pocketserver.presentation.home.rememberSharedHomeViewModel
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.launch
@@ -46,7 +49,7 @@ import kotlinx.coroutines.launch
 fun DeveloperScreen(onBack: () -> Unit) {
     // Activity-shared: zero per-visit init cost, one network observer total.
     val vm = rememberSharedHomeViewModel()
-    val state by vm.uiState.collectAsState()
+    val state by vm.uiState.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -82,6 +85,8 @@ fun DeveloperScreen(onBack: () -> Unit) {
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+            GlassBackground(Modifier.fillMaxSize())
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(PsSpacing.xxl)
@@ -117,25 +122,21 @@ fun DeveloperScreen(onBack: () -> Unit) {
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
+        }
     }
 }
 
 @Composable
 private fun InfoRow(label: String, value: String, mono: Boolean = false) {
     Column {
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            if (mono) MonoText(value, small = true)
-            else Text(value, style = MaterialTheme.typography.bodyMedium)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        LiquidGlassListItem(
+            title = label,
+            subtitle = null,
+            trailing = {
+                if (mono) MonoText(value, small = true)
+                else Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            }
+        )
+        Spacer(Modifier.height(8.dp))
     }
 }
