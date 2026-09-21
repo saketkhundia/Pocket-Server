@@ -44,6 +44,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saketkhundia.pocketserver.PocketServerApp
 import com.saketkhundia.pocketserver.domain.model.AppSettings
@@ -84,35 +86,57 @@ fun SettingsScreen(
     LaunchedEffect(msg) { msg?.let { snackbar.showSnackbar(it); vm.clearMessage() } }
 
     if (showResetConfirm) {
-        DialogEntrance {
-            LiquidGlassDialog(
-                title = "Reset sign-in?",
-                body = "Restores admin / admin, signs out all browsers and clears login blocks. Change the password right after.",
-                primaryLabel = "Reset",
-                onPrimary = { showResetConfirm = false; vm.resetSignIn() },
-                secondaryLabel = "Cancel",
-                onDismiss = { showResetConfirm = false }
-            )
+        // Real dialog window (dim + focus + back-press). The glass panel
+        // alone renders inline — without Dialog it has no window/scrim.
+        Dialog(
+            onDismissRequest = { showResetConfirm = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            androidx.compose.foundation.layout.Box(
+                Modifier.fillMaxSize().padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                DialogEntrance {
+                    LiquidGlassDialog(
+                        title = "Reset sign-in?",
+                        body = "Restores admin / admin, signs out all browsers and clears login blocks. Change the password right after.",
+                        primaryLabel = "Reset",
+                        onPrimary = { showResetConfirm = false; vm.resetSignIn() },
+                        secondaryLabel = "Cancel",
+                        onDismiss = { showResetConfirm = false }
+                    )
+                }
+            }
         }
     }
 
     if (dialog != null) {
-        DialogEntrance {
-            EditDialog(
-                target = dialog!!,
-                settings = settings,
-                onDismiss = { dialog = null },
-                onConfirm = { value, extra ->
-                    when (dialog!!) {
-                        EditTarget.ServerName -> vm.updateServerName(value)
-                        EditTarget.HttpPort -> vm.updatePort(value, true)
-                        EditTarget.FtpPort -> vm.updatePort(value, false)
-                        EditTarget.Username -> vm.changeCredentials(value, extra ?: "")
-                        EditTarget.Timeout -> value.toLongOrNull()?.let { vm.setSessionTimeout(it) }
-                    }
-                    dialog = null
+        Dialog(
+            onDismissRequest = { dialog = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            androidx.compose.foundation.layout.Box(
+                Modifier.fillMaxSize().padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                DialogEntrance {
+                    EditDialog(
+                        target = dialog!!,
+                        settings = settings,
+                        onDismiss = { dialog = null },
+                        onConfirm = { value, extra ->
+                            when (dialog!!) {
+                                EditTarget.ServerName -> vm.updateServerName(value)
+                                EditTarget.HttpPort -> vm.updatePort(value, true)
+                                EditTarget.FtpPort -> vm.updatePort(value, false)
+                                EditTarget.Username -> vm.changeCredentials(value, extra ?: "")
+                                EditTarget.Timeout -> value.toLongOrNull()?.let { vm.setSessionTimeout(it) }
+                            }
+                            dialog = null
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 
@@ -333,7 +357,7 @@ private fun EditDialog(
     var extra by remember { mutableStateOf("") }
     val g = LocalGlassColors.current
 
-    LiquidGlassSurface(level = GlassLevel.L3, radius = com.saketkhundia.pocketserver.presentation.glass.GlassShapes.large, glow = g.gold, glowAlpha = 0.10f, modifier = Modifier.fillMaxWidth()) {
+    LiquidGlassSurface(level = GlassLevel.L3, radius = com.saketkhundia.pocketserver.presentation.glass.GlassShapes.large, glow = g.gold, glowAlpha = 0.10f, frosted = true, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, color = g.textPrimary)
             LiquidGlassTextField(

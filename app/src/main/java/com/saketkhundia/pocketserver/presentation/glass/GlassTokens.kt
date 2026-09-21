@@ -95,13 +95,13 @@ val DarkGlassColors = GlassColors(
  * never from dark washes.
  */
 val LightGlassColors = GlassColors(
-    bg0 = Color(0xFFF4F5F7),
+    bg0 = Color(0xFFF3F4F5),
     bg1 = Color(0xFFF8F9FA),
     bg2 = Color(0xFFFFFFFF),
-    surfaceL1 = Color(0xA6FFFFFF), // 65% white, background glass
-    surfaceL2 = Color(0xB8FFFFFF), // 72% white, cards
-    surfaceL2b = Color(0xCCFFFFFF), // 80% white
-    surfaceL3 = Color(0xD1FFFFFF), // 82% white, elevated / dialogs
+    surfaceL1 = Color(0xCCFFFFFF), // 80% white, background glass
+    surfaceL2 = Color(0xE0FFFFFF), // 88% white, cards — clearly distinct
+    surfaceL2b = Color(0xE0FFFFFF), // 88% white
+    surfaceL3 = Color(0xEBFFFFFF), // 92% white, elevated / dialogs
     surfaceCta = Color(0xEBFFFFFF), // 92% white (danger path; primary CTA is solid dark)
     surfaceNav = Color(0xE0FFFFFF), // 88% white nav bar
     border = Color(0x0F111214), // 6% dark hairline
@@ -111,15 +111,15 @@ val LightGlassColors = GlassColors(
     textPrimary = Color(0xFF111111),
     textSecondary = Color(0xFF555555),
     textTertiary = Color(0xFF7A7A7A),
-    gold = Color(0xFF111111),
+    gold = Color(0xFF111214),
     goldMid = Color(0xFF555555),
-    goldSoft = Color(0xFF111111),
-    goldGlow = Color(0xFF111111).copy(alpha = 0.06f),
+    goldSoft = Color(0xFF111214),
+    goldGlow = Color(0xFF111214).copy(alpha = 0.06f),
     success = Color(0xFF12805C),
     error = Color(0xFFDC2626),
     warning = Color(0xFFB45309),
     photo = Color(0xFF5B6472),
-    track = Color(0xFFE5E6E8), // solid pale track (storage, skeletons)
+    track = Color(0xFFE1E3E6), // solid pale track (storage, skeletons)
     isDark = false
 )
 

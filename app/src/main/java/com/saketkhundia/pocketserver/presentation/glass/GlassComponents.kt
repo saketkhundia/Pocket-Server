@@ -92,16 +92,21 @@ fun LiquidGlassButton(
         tween(GlassMotion.press, easing = FastOutSlowInEasing), label = "btnPress"
     )
     // Hierarchy per theme: dark gets L4 glass + white text; light gets a
-    // solid near-black button + white text (glass-on-white has no presence
-    // for a primary CTA). Danger stays red-on-glass in both.
+    // solid #111214 button + white text (glass-on-white has no presence
+    // for a primary CTA; pressed deepens to #1A1A1A). Danger stays
+    // red-on-glass in both.
     if (!c.isDark && !danger && enabled && !loading) {
         val shape = RoundedCornerShape(GlassShapes.button)
+        val bgTarget = if (pressed) Color(0xFF1A1A1A) else Color(0xFF111214)
+        val bg by androidx.compose.animation.animateColorAsState(
+            bgTarget, tween(GlassMotion.press), label = "ctaPressBg"
+        )
         Box(
             modifier = modifier
                 .graphicsLayer { scaleX = scale; scaleY = scale }
                 .shadow(10.dp, shape, ambientColor = Color.Black.copy(alpha = 0.22f))
                 .clip(shape)
-                .background(Color(0xFF111418))
+                .background(bg)
                 .background(
                     Brush.verticalGradient(
                         listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
@@ -396,16 +401,22 @@ fun LiquidGlassIconCircle(
 ) {
     val c = LocalGlassColors.current
     // Default (no explicit tint): white wash + white icon on dark;
-    // solid #F0F1F2 + #222 icon on light — never a washed-out gray.
+    // flat light-gray + charcoal on light. Explicit tints keep their wash.
     val t = tint ?: if (c.isDark) c.goldSoft else Color(0xFF222222)
-    val bg = if (tint == null && !c.isDark) {
-        Color(0xFFF0F1F2)
-    } else {
-        t.copy(alpha = 0.13f)
+    if (c.isDark || tint != null) {
+        Box(
+            modifier = modifier.size(size).clip(CircleShape)
+                .background(t.copy(alpha = 0.13f))
+                .border(1.dp, c.border, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = t, modifier = Modifier.size(size * 0.48f))
+        }
+        return
     }
     Box(
         modifier = modifier.size(size).clip(CircleShape)
-            .background(bg)
+            .background(Color(0xFFF0F1F3))
             .border(1.dp, c.border, CircleShape),
         contentAlignment = Alignment.Center
     ) {
@@ -698,7 +709,8 @@ fun LiquidGlassDialog(
     onDismiss: (() -> Unit)? = null
 ) {
     val c = LocalGlassColors.current
-    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L3, radius = GlassShapes.large, glow = c.gold, glowAlpha = 0.10f) {
+    // Dialogs are large surfaces → frosted in light, layered in dark.
+    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L3, radius = GlassShapes.large, glow = c.gold, glowAlpha = 0.10f, frosted = true) {
         Column(Modifier.fillMaxWidth().padding(GlassDimens.s20)) {
             Text(title, style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
             Spacer(Modifier.height(8.dp))

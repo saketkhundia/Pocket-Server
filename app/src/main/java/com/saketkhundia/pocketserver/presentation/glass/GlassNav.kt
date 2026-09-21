@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -75,9 +76,9 @@ fun LiquidGlassBottomNavigation(
     val selectedIndex = tabs.indexOfFirst { it.route == currentRoute }.takeIf { it >= 0 } ?: 0
     val density = LocalDensity.current
     val dark = LocalGlassColors.current.isDark
-    // Bar material is explicit per theme (not the generic surface): dark is a
-    // near-black film, light is flat white-0.88 + 0.07 hairline + one soft
-    // static shadow. No layered effects — this stays the cheapest component.
+    // Bar material, explicit per theme. Dark: near-black film. Light: flat
+    // white-0.88 + 0.07 hairline + one soft shadow. No wash, no blur —
+    // restraint keeps it crisp against the page.
     val barShape = RoundedCornerShape(GlassShapes.nav)
     Box(
         modifier = modifier.fillMaxWidth().navigationBarsPadding()
@@ -94,7 +95,10 @@ fun LiquidGlassBottomNavigation(
                     spotColor = Color.Black.copy(alpha = if (dark) 0.40f else 0.05f)
                 )
                 .clip(barShape)
-                .background(if (dark) Color.White.copy(alpha = 0.035f) else LocalGlassColors.current.surfaceNav)
+                .background(
+                    if (dark) Color.White.copy(alpha = 0.035f)
+                    else LocalGlassColors.current.surfaceNav
+                )
                 .border(
                     1.dp,
                     if (dark) Color.White.copy(alpha = 0.10f) else Color(0xFF111418).copy(alpha = 0.07f),
@@ -114,18 +118,9 @@ fun LiquidGlassBottomNavigation(
                     animationSpec = tween(175, easing = FastOutSlowInEasing),
                     label = "navPillX"
                 )
-                // Theme-adaptive pill: white glass on AMOLED black;
-                // solid #E8E9EB capsule + 0.07 border in light. Same size always.
-                val pillBg = if (dark) {
-                    Color.White.copy(alpha = 0.09f)
-                } else {
-                    Color(0xFFE8E9EB)
-                }
-                val pillBorder = if (dark) {
-                    Color.White.copy(alpha = 0.10f)
-                } else {
-                    Color(0xFF111418).copy(alpha = 0.07f)
-                }
+                // Pill: white glass on AMOLED black; flat #E5E6E8 + hairline
+                // in light — quiet, exact, never floating. Same size always.
+                val pillShape = RoundedCornerShape(18.dp)
                 // Shared pill BEHIND the Row: fixed (cellW−6dp × bar−8dp).
                 Box(
                     modifier = Modifier
@@ -134,9 +129,35 @@ fun LiquidGlassBottomNavigation(
                         .width(cellW - 6.dp)
                         .height(maxHeight - 8.dp)
                         .graphicsLayer { translationX = pillX + insetPx }
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(pillBg)
-                        .border(1.dp, pillBorder, RoundedCornerShape(18.dp))
+                        .then(
+                            if (dark) Modifier.shadow(
+                                3.dp, pillShape,
+                                ambientColor = Color.Black.copy(alpha = 0.30f)
+                            ) else Modifier
+                        )
+                        .clip(pillShape)
+                        .background(
+                            if (dark) Color.White.copy(alpha = 0.09f)
+                            else Color(0xFFE5E6E8)
+                        )
+                        .then(
+                            // Dark-only crown lift; light stays perfectly flat.
+                            if (dark) Modifier.background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.10f),
+                                        Color.Transparent
+                                    ),
+                                    endY = 44f
+                                )
+                            ) else Modifier
+                        )
+                        .border(
+                            1.dp,
+                            if (dark) Color.White.copy(alpha = 0.10f)
+                            else Color(0xFF111418).copy(alpha = 0.06f),
+                            pillShape
+                        )
                 )
                 // Content Row ON TOP: 4 identical 25% cells.
                 Row(

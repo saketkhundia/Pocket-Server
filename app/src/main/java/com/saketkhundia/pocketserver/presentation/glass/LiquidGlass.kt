@@ -19,17 +19,20 @@ import androidx.compose.ui.unit.dp
 /**
  * LIQUID GLASS MATERIAL — one API, two intentional material systems.
  *
- * DARK (7-layer): translucent base + accent glow wash + top specular +
+ * DARK (layered): translucent base + accent glow wash + top specular +
  * darker lower edge + inner highlight + diagonal sheen (HIGH only) +
  * deep static shadow. Depth through light play on black.
  *
- * LIGHT (flat frosted white — deliberately NOT layered): white base +
- * 1dp black-0.06 hairline + whisper shadow. No glow washes, no highlight
- * or shade gradients, no sheen. Stacking translucent gradients over white
- * is exactly what baked the old "gray gradient card" look — depth here
- * comes from surface-tone steps + hairline + shadow, never from washes.
+ * LIGHT (restrained frosted white): near-opaque white base + faint crown
+ * highlight + flat 6% hairline + whisper shadow. NO blur layers, NO glow
+ * washes, NO gradient rims — restraint is what keeps white glass from
+ * washing out. Depth reads from bg → card → control separation.
  *
- * Performance: zero blur modifiers anywhere; all overlays are static
+ * The [frosted] flag is retained for API compatibility but currently a
+ * no-op: heavy blur is what made the UI washed out, so large surfaces use
+ * the same quiet material, lifted only by level opacity.
+ *
+ * Performance: zero blur modifiers anywhere; all overlays static
  * single-draws. One background per screen, never per item.
  */
 
@@ -45,6 +48,8 @@ fun LiquidGlassSurface(
     borderAlpha: Float? = null,
     onClick: (() -> Unit)? = null,
     contentAlignment: Alignment = Alignment.TopStart,
+    /** Retained for call-site compatibility; blur was removed (it washed out). */
+    frosted: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val c = LocalGlassColors.current
@@ -82,12 +87,22 @@ fun LiquidGlassSurface(
     val spot = if (c.isDark) 0.40f else 0.05f
 
     if (!c.isDark) {
-        // LIGHT: flat frosted white. Base + hairline + shadow. Nothing else.
+        // LIGHT: near-opaque white + faint crown lift + flat 6% hairline +
+        // whisper shadow. Single chain, no blur, no rims, no washes.
         Box(
             modifier = modifier
                 .shadow(elevation, shape, ambientColor = Color.Black.copy(alpha = ambient), spotColor = Color.Black.copy(alpha = spot))
                 .clip(shape)
                 .background(base)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.10f),
+                            Color.Transparent
+                        ),
+                        endY = 64f
+                    )
+                )
                 .border(1.dp, borderColor, shape)
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
             contentAlignment = contentAlignment
@@ -154,7 +169,7 @@ fun LiquidGlassSurface(
 
 /**
  * Page background — theme-owned gradient, one shared layer per screen.
- * Dark: true black so AMOLED pixels stay off. Light: #F4F5F7 off-white
+ * Dark: true black so AMOLED pixels stay off. Light: #F1F2F4 off-white
  * with a breath of white light up top. No animation, no color tint.
  */
 @Composable

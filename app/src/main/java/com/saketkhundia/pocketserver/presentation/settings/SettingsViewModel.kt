@@ -72,7 +72,14 @@ class SettingsViewModel(private val app: PocketServerApp) : ViewModel() {
 
     fun setTheme(mode: AppThemeMode) = save { it.copy(themeMode = mode) }
 
-    fun setSessionTimeout(min: Long) = save { it.copy(sessionTimeoutMin = min.coerceIn(5, 1440)) }
+    fun setSessionTimeout(min: Long) {
+        val v = min.coerceIn(5, 1440)
+        // Persist AND live-apply: previously only the repo was updated, so a
+        // running server kept the old session expiry until restart.
+        container.authManager.sessions.setTimeoutMin(v)
+        save { it.copy(sessionTimeoutMin = v) }
+        _message.value = "Session timeout saved"
+    }
 
     fun changeCredentials(newUser: String, newPass: String) {
         if (newUser.length !in 1..64) { _message.value = "Username must be 1–64 chars"; return }

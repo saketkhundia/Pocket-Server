@@ -90,16 +90,18 @@ fun glassColors(): Pair<Color, Color> {
     return g.surfaceL2 to g.border
 }
 
-/** Liquid-glass card — L2 surface, specular highlight, hairline border. */
+/** Liquid-glass card. [frosted]=true only for the hero (large-surface frost). */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
     radius: Dp = PsRadius.xl,
     onClick: (() -> Unit)? = null,
+    frosted: Boolean = false,
     content: @Composable () -> Unit
 ) {
     LiquidGlassSurface(
-        modifier = modifier, level = GlassLevel.L2, radius = radius, onClick = onClick
+        modifier = modifier, level = GlassLevel.L2, radius = radius,
+        onClick = onClick, frosted = frosted
     ) { content() }
 }
 
@@ -184,10 +186,6 @@ fun QuickAction(
     modifier: Modifier = Modifier
 ) {
     val g = LocalGlassColors.current
-    // Icon chip: white wash on dark; solid #F0F1F2 + #222 icon on light.
-    // Titles #222 / subtitles #777 per light spec — never washed out.
-    val chipBg = if (g.isDark) g.gold.copy(alpha = 0.13f) else Color(0xFFF0F1F2)
-    val iconTint = if (g.isDark) g.goldSoft else Color(0xFF222222)
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(PsRadius.md))
@@ -195,13 +193,26 @@ fun QuickAction(
             .padding(vertical = 6.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier.size(52.dp).clip(CircleShape)
-                .background(chipBg)
-                .border(1.dp, g.border, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = iconTint, modifier = Modifier.size(24.dp))
+        if (g.isDark) {
+            Box(
+                modifier = Modifier.size(52.dp).clip(CircleShape)
+                    .background(g.gold.copy(alpha = 0.13f))
+                    .border(1.dp, g.border, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = g.goldSoft, modifier = Modifier.size(24.dp))
+            }
+        } else {
+            // Simple light-gray glass circle + charcoal glyph. No lens
+            // gradients, no glow — restraint keeps it crisp.
+            Box(
+                modifier = Modifier.size(52.dp).clip(CircleShape)
+                    .background(Color(0xFFF0F1F3))
+                    .border(1.dp, g.border, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = Color(0xFF222222), modifier = Modifier.size(24.dp))
+            }
         }
         Spacer(Modifier.height(10.dp))
         Text(title, style = MaterialTheme.typography.titleSmall, color = g.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -235,8 +246,8 @@ fun DialogEntrance(content: @Composable () -> Unit) {
 @Composable
 fun ServerGraphic(modifier: Modifier = Modifier, running: Boolean = false) {
     val g = LocalGlassColors.current
-    // White line art on dark; neutral #555 gray on light (never tinted).
-    val accent = if (g.isDark) g.goldSoft else Color(0xFF555555)
+    // White line art on dark; visible charcoal-gray on light.
+    val accent = if (g.isDark) g.goldSoft else Color(0xFF404448)
     val dim = g.textTertiary
     val slab = g.surfaceL3
     Canvas(modifier = modifier) {
@@ -329,8 +340,8 @@ fun FileKindIcon(
     containerSize: Dp = 40.dp
 ) {
     val g = LocalGlassColors.current
-    // Chip: white wash on dark; #F0F1F2 + #222 icon on light.
-    val chipBg = if (g.isDark) g.gold.copy(alpha = 0.10f) else Color(0xFFF0F1F2)
+    // Simple chip: white wash on dark; flat light-gray + charcoal on light.
+    val chipBg = if (g.isDark) g.gold.copy(alpha = 0.10f) else Color(0xFFF0F1F3)
     val iconTint = if (g.isDark) g.goldSoft else Color(0xFF222222)
     val icon = when (kind) {
         FileKind.Folder -> Icons.Outlined.Folder

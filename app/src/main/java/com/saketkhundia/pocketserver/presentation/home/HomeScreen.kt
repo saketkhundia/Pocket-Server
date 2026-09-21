@@ -462,7 +462,7 @@ private fun HeroCard(
         animationSpec = tween(400, easing = FastOutSlowInEasing),
         label = "heroGlow"
     )
-    GlassCard(modifier = Modifier.fillMaxWidth(), radius = PsRadius.hero) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), radius = PsRadius.hero, frosted = true) {
         Column(Modifier.padding(PsSpacing.xl)) {
             StatusPill(status)
             Spacer(Modifier.height(PsSpacing.lg))
