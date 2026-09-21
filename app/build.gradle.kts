@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
 
     implementation(libs.zxing.core)
+    implementation(libs.jmdns)
 
     // Coil: in-app photo thumbnails only (presentation layer, no server impact)
     implementation(libs.coil.compose)

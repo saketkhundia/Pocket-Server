@@ -4,14 +4,41 @@ import kotlinx.serialization.Serializable
 
 enum class ServerStatus { STOPPED, STARTING, RUNNING, ERROR }
 
+/** mDNS local-name advertisement state. Never blocks the HTTP server. */
+enum class MdnsStatus { IDLE, REGISTERING, AVAILABLE, UNAVAILABLE }
+
 data class ServerState(
     val status: ServerStatus = ServerStatus.STOPPED,
     val url: String? = null,
     val localIp: String? = null,
     val port: Int = 8080,
     val error: String? = null,
-    val startedAtMs: Long? = null
+    val startedAtMs: Long? = null,
+    /** Friendly URL (e.g. http://pocketserver.local:8080) once VERIFIED. Null otherwise — never faked. */
+    val hostnameUrl: String? = null,
+    /** Expected name shown instantly while VERIFYING (with a checking marker). */
+    val pendingHostnameUrl: String? = null,
+    val mdnsStatus: MdnsStatus = MdnsStatus.IDLE
 )
+
+/**
+ * Single source of truth for "which address do we show/use".
+ * UI must never hand-build network URLs — consume [displayUrl] for display
+ * and [primaryUrl] for actions (open/copy/share/QR).
+ */
+data class LocalServerAddress(
+    val hostnameUrl: String?,
+    val ipUrl: String?,
+    val mdnsStatus: MdnsStatus = MdnsStatus.IDLE,
+    val pendingHostnameUrl: String? = null
+) {
+    /** Display: verified name → expected (checking) name → IP. */
+    val displayUrl: String? get() = hostnameUrl ?: pendingHostnameUrl ?: ipUrl
+    /** Functional: verified name → IP. Pending names never drive actions. */
+    val primaryUrl: String? get() = hostnameUrl ?: ipUrl
+    val mdnsAvailable: Boolean get() = mdnsStatus == MdnsStatus.AVAILABLE && hostnameUrl != null
+    val mdnsChecking: Boolean get() = mdnsStatus == MdnsStatus.REGISTERING && hostnameUrl == null && pendingHostnameUrl != null
+}
 
 data class SharedFolder(
     val id: String,

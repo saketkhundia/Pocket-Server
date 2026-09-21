@@ -3,12 +3,16 @@ package com.saketkhundia.pocketserver.server
 import android.content.Context
 import com.saketkhundia.pocketserver.data.repository.AppServerStateRepository
 import com.saketkhundia.pocketserver.domain.model.LogEntry
+import com.saketkhundia.pocketserver.domain.model.MdnsStatus
 import com.saketkhundia.pocketserver.domain.model.ServerState
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
 import com.saketkhundia.pocketserver.domain.repository.SharedFolderRepository
 import com.saketkhundia.pocketserver.domain.repository.SettingsRepository
 import com.saketkhundia.pocketserver.network.LocalIpProvider
 import com.saketkhundia.pocketserver.server.auth.AuthManager
+import com.saketkhundia.pocketserver.server.mdns.MDNS_BASE_HOST
+import com.saketkhundia.pocketserver.server.mdns.MdnsManager
+import com.saketkhundia.pocketserver.server.mdns.mdnsHostnameUrl
 import com.saketkhundia.pocketserver.server.media.RangeSupport
 import com.saketkhundia.pocketserver.server.routing.RouteDeps
 import com.saketkhundia.pocketserver.server.routing.WebUiAssets
@@ -65,6 +69,7 @@ class HttpServerManager(
     private val settingsRepo: SettingsRepository,
     private val sharedFolderRepo: SharedFolderRepository,
     private val stateRepo: AppServerStateRepository,
+    private val mdns: MdnsManager,
     private val appScope: CoroutineScope
 ) {
     private var engine: EmbeddedServer<*, *>? = null
@@ -118,6 +123,24 @@ class HttpServerManager(
             val url = "http://$newIp:${prev.port}"
             stateRepo.setState(prev.copy(localIp = newIp, url = url))
             stateRepo.addLog(LogEntry(clientIp = "system", method = "NETWORK", path = url, status = 200, message = "IP updated after network change: $newIp"))
+            // JmDNS binds the old address — re-advertise on the new network
+            // so no stale record lingers. Fire-and-forget; IP works meanwhile.
+            val port = prev.port
+            appScope.launch {
+                try {
+                    val cur = stateRepo.state.first()
+                    if (cur.status != ServerStatus.RUNNING) return@launch
+                    stateRepo.setState(cur.copy(mdnsStatus = MdnsStatus.REGISTERING, hostnameUrl = null, pendingHostnameUrl = mdnsHostnameUrl(MDNS_BASE_HOST, port)))
+                    val verified = try { mdns.restart(port, cur.localIp) } catch (_: Exception) { null }
+                    val latest = stateRepo.state.first()
+                    if (latest.status != ServerStatus.RUNNING) return@launch
+                    if (verified != null) {
+                        stateRepo.setState(latest.copy(mdnsStatus = MdnsStatus.AVAILABLE, hostnameUrl = verified, pendingHostnameUrl = null))
+                    } else {
+                        stateRepo.setState(latest.copy(mdnsStatus = MdnsStatus.UNAVAILABLE, hostnameUrl = null, pendingHostnameUrl = null))
+                    }
+                } catch (_: Exception) { /* never break the server */ }
+            }
         }
     }
 
@@ -221,6 +244,9 @@ class HttpServerManager(
                     message = "HTTP server started on $networkDesc. Candidates: ${currentCandidates().joinToString()} — try ping $resolvedIp"
                 )
             )
+            // Advertise pocketserver.local asynchronously — mDNS must never
+            // delay or fail the start itself; the IP URL works regardless.
+            advertiseHostname(port)
             Result.success(state)
         } catch (e: BindException) {
             val msg = "Port $port is already in use. Try another port."
@@ -235,8 +261,20 @@ class HttpServerManager(
 
     suspend fun stop(): Result<Unit> = mutex.withLock {
         try {
-            engine?.stop(300, 500)
+            // Hand the engine off under lock, then tear down OFF the caller's
+            // thread: stop() is routinely invoked on Main (UI toggle, service
+            // action) and both engine grace-stop and the mDNS goodbye block
+            // for seconds — that was an ANR-grade freeze.
+            val eng = engine
             engine = null
+            withContext(Dispatchers.IO) {
+                try { eng?.stop(300, 500) } catch (_: Exception) {}
+            }
+            // Fire-and-forget: the goodbye is still sent (process stays alive
+            // via appScope), but stop() never waits on an in-flight ~20s
+            // registration or a slow close. Restart ordering stays correct —
+            // register() always cleans stale state first under its own mutex.
+            mdns.unregisterAsync()
             // Clear sessions and reset stats
             auth.sessions.clear()
             seenIps.clear()
@@ -250,6 +288,37 @@ class HttpServerManager(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Best-effort local-name advertisement after a successful start.
+     * Mirrors REGISTERING → AVAILABLE/UNAVAILABLE + verified URL into the
+     * single ServerState so UI never has to guess or hand-build URLs.
+     */
+    private fun advertiseHostname(port: Int) {
+        appScope.launch {
+            try {
+                val cur = stateRepo.state.first()
+                if (cur.status != ServerStatus.RUNNING) return@launch
+                // Publish the expected name INSTANTLY (with a checking marker
+                // in UI) while verification runs in the background.
+                val pending = mdnsHostnameUrl(MDNS_BASE_HOST, port)
+                stateRepo.setState(cur.copy(mdnsStatus = MdnsStatus.REGISTERING, hostnameUrl = null, pendingHostnameUrl = pending))
+                stateRepo.addLog(LogEntry(clientIp = "system", method = "MDNS", path = "register", status = 200, message = "Local name registration started"))
+                // Bind the exact working IP so the A record can never point
+                // somewhere the IP URL doesn't reach.
+                val verified = try { mdns.register(port, cur.localIp) } catch (_: Exception) { null }
+                val latest = stateRepo.state.first()
+                if (latest.status != ServerStatus.RUNNING) return@launch
+                if (verified != null) {
+                    stateRepo.setState(latest.copy(mdnsStatus = MdnsStatus.AVAILABLE, hostnameUrl = verified, pendingHostnameUrl = null))
+                    stateRepo.addLog(LogEntry(clientIp = "system", method = "MDNS", path = verified, status = 200, message = "Local name available"))
+                } else {
+                    stateRepo.setState(latest.copy(mdnsStatus = MdnsStatus.UNAVAILABLE, hostnameUrl = null, pendingHostnameUrl = null))
+                    stateRepo.addLog(LogEntry(clientIp = "system", method = "MDNS", path = "unavailable", status = 200, message = "Local name unavailable on this network — IP fallback only"))
+                }
+            } catch (_: Exception) { /* mDNS must never break the server */ }
         }
     }
 

@@ -160,6 +160,9 @@ class ServerForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        // Safety net: normal stops unregister via HttpServerManager.stop(),
+        // but an unexpected destroy must not leak an mDNS advertisement.
+        try { (application as? PocketServerApp)?.container?.mdnsManager?.unregisterAsync() } catch (_: Exception) {}
         stateJob?.cancel()
         scope.cancel()
         super.onDestroy()

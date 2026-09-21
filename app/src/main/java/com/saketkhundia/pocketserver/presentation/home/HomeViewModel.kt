@@ -15,7 +15,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saketkhundia.pocketserver.PocketServerApp
 import com.saketkhundia.pocketserver.domain.model.AppSettings
+import com.saketkhundia.pocketserver.domain.model.LocalServerAddress
 import com.saketkhundia.pocketserver.domain.model.LogEntry
+import com.saketkhundia.pocketserver.domain.model.MdnsStatus
 import com.saketkhundia.pocketserver.domain.model.ServerState
 import com.saketkhundia.pocketserver.domain.model.ServerStats
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
@@ -90,6 +92,18 @@ class HomeViewModel(private val app: PocketServerApp) : ViewModel() {
     val recentLogs: StateFlow<List<LogEntry>> = container.serverStateRepository.logs
         .map { it.take(4) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Single source of truth for addressing: friendly hostname first, IP
+     * fallback second. Screens consume [LocalServerAddress.primaryUrl] and
+     * never hand-build network URLs.
+     */
+    val address: StateFlow<LocalServerAddress> = container.serverStateRepository.state
+        .map { LocalServerAddress(it.hostnameUrl, it.url, it.mdnsStatus, it.pendingHostnameUrl) }
+        .stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5000),
+            LocalServerAddress(null, null, MdnsStatus.IDLE)
+        )
 
     val uiState: StateFlow<HomeUiState> = combine(
         container.serverStateRepository.state,
@@ -202,7 +216,8 @@ class HomeViewModel(private val app: PocketServerApp) : ViewModel() {
     }
 
     fun shareUrl(context: Context) {
-        val url = uiState.value.serverState.url ?: run {
+        // Friendly hostname first, IP fallback second — same priority as UI.
+        val url = address.value.primaryUrl ?: run {
             val ip = _localIp.value ?: return
             val port = uiState.value.settings.httpPort
             "http://$ip:$port"

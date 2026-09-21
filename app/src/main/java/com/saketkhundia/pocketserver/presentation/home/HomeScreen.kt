@@ -75,7 +75,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saketkhundia.pocketserver.domain.model.MdnsStatus
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
+import com.saketkhundia.pocketserver.server.mdns.loopbackUrl
 import com.saketkhundia.pocketserver.presentation.components.ActivityRow
 import com.saketkhundia.pocketserver.presentation.components.AmoledBackground
 import com.saketkhundia.pocketserver.presentation.components.EmptyState
@@ -120,6 +122,8 @@ fun HomeScreen(
     val troubleshoot by vm.troubleshootHint.collectAsStateWithLifecycle()
     val candidates by vm.allCandidates.collectAsStateWithLifecycle()
     val errorMessage by vm.errorMessage.collectAsStateWithLifecycle()
+    // Addressing single source of truth: friendly hostname primary, IP fallback.
+    val address by vm.address.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -139,7 +143,13 @@ fun HomeScreen(
     val status = serverState.status
     val running = status == ServerStatus.RUNNING
     val starting = status == ServerStatus.STARTING
-    val url = serverState.url
+    // Display: verified name → expected (checking) name → IP, instantly.
+    // Actions (open/copy/share/QR) keep using the verified-or-IP primary.
+    val url = address.primaryUrl
+    val displayUrl = address.displayUrl
+    val hostnameUrl = address.hostnameUrl
+    val ipFallback = address.ipUrl?.takeIf { it != displayUrl }
+    val mdnsChecking = address.mdnsChecking
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -192,7 +202,11 @@ fun HomeScreen(
                     Entrance(visible = entered, delay = 40) {
                         HeroCard(
                             status = status,
-                            url = url,
+                            url = displayUrl,
+                            hostnameUrl = hostnameUrl,
+                            ipFallback = ipFallback,
+                            mdnsChecking = mdnsChecking,
+                            mdnsUnavailable = address.mdnsStatus == MdnsStatus.UNAVAILABLE,
                             error = serverState.error,
                             starting = starting,
                             running = running,
@@ -200,7 +214,10 @@ fun HomeScreen(
                             onStop = { vm.stopServer(ctx) },
                             onRetry = { vm.startServer(ctx); vm.clearError() },
                             onOpenServer = {
-                                val u = url ?: return@HeroCard
+                                // On-device preview: Android cannot resolve .local
+                                // names (NXDOMAIN), so always use loopback here.
+                                // The hostname URL is for OTHER devices.
+                                val u = loopbackUrl(serverState.port)
                                 try {
                                     ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u)))
                                 } catch (_: Exception) {}
@@ -440,6 +457,10 @@ private fun HeaderIconButton(
 private fun HeroCard(
     status: ServerStatus,
     url: String?,
+    hostnameUrl: String?,
+    ipFallback: String?,
+    mdnsChecking: Boolean,
+    mdnsUnavailable: Boolean,
     error: String?,
     starting: Boolean,
     running: Boolean,
@@ -536,6 +557,33 @@ private fun HeroCard(
                         androidx.compose.material3.IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
                             Icon(Icons.Filled.ContentCopy, "Copy link", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                         }
+                    }
+                    // Friendly name is primary; the working IP stays visible as
+                    // fallback. UNAVAILABLE is stated honestly — never
+                    // advertised as working. While checking, the expected
+                    // name shows instantly with a marker; actions still use
+                    // the verified-or-IP primary.
+                    if (ipFallback != null && (hostnameUrl != null || mdnsChecking)) {
+                        Spacer(Modifier.height(2.dp))
+                        MonoText(
+                            "Fallback: ${ipFallback.removePrefix("http://")}",
+                            small = true,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (mdnsChecking) {
+                        Text(
+                            "Checking local name…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (mdnsUnavailable) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Local name unavailable on this network.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     Spacer(Modifier.height(PsSpacing.md))
                     Row(

@@ -16,6 +16,7 @@ documentfile = "1.0.1"
 datastoreCore = "1.1.1"
 work = "2.9.0"
 zxing = "3.5.2"
+jmdns = "3.6.3"
 coil = "2.6.0"
 junit = "4.13.2"
 androidxJunit = "1.1.5"
@@ -53,6 +54,9 @@ ktor-serialization-json = { group = "io.ktor", name = "ktor-serialization-kotlin
 ktor-server-cors = { group = "io.ktor", name = "ktor-server-cors-jvm", version.ref = "ktor" }
 ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pages-jvm", version.ref = "ktor" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+# JmDNS: full mDNS responder — claims/defends pocketserver.local (A records)
+# with automatic conflict renaming. Android NSD alone cannot do this.
+jmdns = { group = "org.jmdns", name = "jmdns", version.ref = "jmdns" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }

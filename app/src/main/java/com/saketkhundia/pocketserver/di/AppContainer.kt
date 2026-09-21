@@ -13,6 +13,7 @@ import com.saketkhundia.pocketserver.domain.monetization.ProFeatureAccessManager
 import com.saketkhundia.pocketserver.network.NetworkManager
 import com.saketkhundia.pocketserver.server.auth.AuthManager
 import com.saketkhundia.pocketserver.server.ftp.FtpServerManager
+import com.saketkhundia.pocketserver.server.mdns.MdnsManager
 import com.saketkhundia.pocketserver.server.HttpServerManager
 import com.saketkhundia.pocketserver.storage.SharedFolderManager
 import com.saketkhundia.pocketserver.storage.StorageManager
@@ -54,6 +55,8 @@ class AppContainer(private val ctx: Context) {
 
     val networkManager by lazy { NetworkManager(ctx.applicationContext) }
 
+    val mdnsManager by lazy { MdnsManager(ctx.applicationContext, appScope) }
+
     val httpServerManager by lazy {
         HttpServerManager(
             context = ctx.applicationContext,
@@ -63,6 +66,7 @@ class AppContainer(private val ctx: Context) {
             settingsRepo = settingsRepository,
             sharedFolderRepo = sharedFolderRepository,
             stateRepo = serverStateRepository,
+            mdns = mdnsManager,
             appScope = appScope
         )
     }

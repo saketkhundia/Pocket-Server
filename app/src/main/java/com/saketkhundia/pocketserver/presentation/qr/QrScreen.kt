@@ -69,12 +69,14 @@ fun QrScreen(onBack: () -> Unit) {
     val ctx = LocalContext.current
     // Activity-shared: zero per-visit init cost, one network observer total.
     val vm = rememberSharedHomeViewModel()
-    // Narrow collector: server state only. The full uiState also carries
-    // stats/logs (per-request emissions during transfers) — irrelevant here.
+    // Narrow collectors: server state + addressing only.
     val serverState by vm.serverState.collectAsStateWithLifecycle()
+    val address by vm.address.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
 
-    val url = serverState.url
+    // QR encodes the primary URL: verified hostname first, IP fallback.
+    // Still only the connection URL — never credentials.
+    val url = address.primaryUrl
     val running = serverState.status == ServerStatus.RUNNING && url != null
 
     // QR encode is O(n²) pixel work — never on the main thread. Generates once
