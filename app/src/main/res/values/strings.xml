@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Pocket Server</string>
+    <string name="start_server">Start Server</string>
+    <string name="stop_server">Stop Server</string>
+    <string name="share_link">Share Link</string>
+    <string name="server_running">Server Running</string>
+    <string name="server_stopped">Stopped</string>
+</resources>

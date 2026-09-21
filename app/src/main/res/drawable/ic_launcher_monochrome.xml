@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Themed-icon (monochrome) glyph: single-color server stack on transparent.
+        The system tints this layer automatically (Android 13+). No background
+        fill, no multi-color paths — keep it one flat silhouette. -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:pathData="M32,34h44v12h-44z M32,50h44v12h-44z M32,66h44v12h-44z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M68,38h4v4h-4z M68,54h4v4h-4z M68,70h4v4h-4z" />
+</vector>
