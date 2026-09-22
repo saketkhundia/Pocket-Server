@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,9 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +35,7 @@ import com.saketkhundia.pocketserver.presentation.components.EmptyState
 import com.saketkhundia.pocketserver.presentation.components.MonoText
 import com.saketkhundia.pocketserver.presentation.components.activityKindOf
 import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import com.saketkhundia.pocketserver.util.FormatUtils
 
@@ -52,12 +51,14 @@ fun LogsScreen(onBack: () -> Unit) {
     val logs by vm.logs.collectAsStateWithLifecycle()
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Server logs", style = MaterialTheme.typography.headlineLarge) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(PsIcons.Back, null) } },
                 actions = {
-                    IconButton(onClick = { vm.clear() }) { Icon(Icons.Filled.Delete, null) }
+                    IconButton(onClick = { vm.clear() }) { Icon(PsIcons.Delete, null) }
                 }
             )
         }

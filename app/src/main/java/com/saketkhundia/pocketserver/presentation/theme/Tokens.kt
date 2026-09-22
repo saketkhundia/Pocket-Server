@@ -16,17 +16,20 @@ object PsSpacing {
 }
 
 /**
- * Consistent corner radii — spec table.
- * Hero 24 · info cards 20 · activity 16–18 · buttons 16 · nav 26 · circles.
+ * Consistent corner radii — spec table (exact).
+ * Cards 24 · bottom tab bar 28 · sliding pill 20 · primary buttons 16 ·
+ * icon tiles 32% of tile size.
  */
 @Immutable
 object PsRadius {
     val sm = 13.dp
     val md = 14.dp
     val lg = 20.dp
-    val xl = 20.dp
+    val xl = 24.dp
     val hero = 24.dp
-    val dock = 26.dp
+    val dock = 28.dp
+    val pill = 20.dp
+    val button = 16.dp
 }
 
 /** File kinds for the shared icon system (Android + Web use same mapping). */

@@ -18,65 +18,77 @@ import com.saketkhundia.pocketserver.presentation.glass.LightGlassColors
 import com.saketkhundia.pocketserver.presentation.glass.LocalGlassColors
 
 /**
- * Pocket Glass — PURE AMOLED: #000000 true black, white typography,
- * subtle grayscale glass. Status colors ONLY for server state dots.
- * No gold, no blue, no purple branding.
+ * MONOCHROME ON AMOLED BLACK — visuals only, functionality untouched.
+ * Page/body/shell: pure #000. One faint light source: single ultra-subtle
+ * white radial sheen (7% white) top-center (see GlassBackground).
+ * All surfaces/text: white at calibrated opacities (85-95 / 60 / 40 /
+ * 30-35 / dividers 6-8). Single semantic exception: online/live dot mint
+ * #6EE7B7 with glow. Everything else grey. No colored blobs, no hue
+ * gradients anywhere.
  */
 
-// Status — state dots only
-private val SuccessDark = Color(0xFF35D98B)
-private val SuccessLight = Color(0xFF12805C)
-private val WarningDark = Color(0xFFF5B84B)
-private val WarningLight = Color(0xFFB45309)
-private val ErrorDark = Color(0xFFFF5B61)
-private val ErrorLight = Color(0xFFDC2626)
-private val MonoPrimary = Color(0xFFFFFFFF)
-private val MonoSecondary = Color(0xFFB8B8B8)
+// Live/online ONLY — mint with glow 0 0 8px rgba(52,211,153,0.9).
+private val LiveMint = Color(0xFF6EE7B7)
+// Monochrome text ladder: primary 85-95%, secondary 60%, tertiary 40%,
+// muted 30-35%, dividers 6-8% white.
+private val White95 = Color(0xF2FFFFFF) // 95%
+private val White85 = Color(0xD9FFFFFF) // 85%
+private val White60 = Color(0x99FFFFFF) // 60%
+private val White40 = Color(0x66FFFFFF) // 40%
+private val White35 = Color(0x59FFFFFF) // 35%
+private val White30 = Color(0x4DFFFFFF) // 30%
+private val Divider08 = Color(0x14FFFFFF) // 8%
+private val Divider06 = Color(0x0FFFFFFF) // 6%
+private val MonoPrimary = White95
+private val MonoSecondary = White60
 
 private val DarkScheme = darkColorScheme(
     primary = MonoPrimary,
     onPrimary = Color(0xFF000000),
-    primaryContainer = Color(0xFF1A1A1A),
+    primaryContainer = Color(0xFF141414),
     onPrimaryContainer = MonoPrimary,
-    secondary = SuccessDark,
-    onSecondary = Color(0xFF04120B),
+    secondary = White60,
+    onSecondary = Color(0xFF000000),
     background = Color(0xFF000000),
     onBackground = MonoPrimary,
-    surface = Color(0xFF030303),
+    surface = Color(0xFF000000),
     onSurface = MonoPrimary,
-    surfaceVariant = Color(0xFF050505),
+    surfaceVariant = Color(0xFF000000),
     onSurfaceVariant = MonoSecondary,
     surfaceTint = Color.Transparent,
-    outline = Color(0x1AFFFFFF),
-    outlineVariant = Color(0x14FFFFFF),
-    error = ErrorDark,
-    onError = Color(0xFF1A0607),
-    errorContainer = Color(0xFF1A0A0B),
-    onErrorContainer = Color(0xFFFFDAD6),
-    tertiary = Color(0xFF777777)
+    outline = Divider08,
+    outlineVariant = Divider06,
+    error = White60,
+    onError = Color(0xFF000000),
+    errorContainer = Color(0xFF141414),
+    onErrorContainer = MonoPrimary,
+    tertiary = White40
 )
 
-private val LightScheme = lightColorScheme(
-    primary = Color(0xFF111418),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE3E5E9),
-    onPrimaryContainer = Color(0xFF111418),
-    secondary = SuccessLight,
-    onSecondary = Color.White,
-    background = Color(0xFFF5F6F8),
-    onBackground = Color(0xFF111111),
-    surface = Color.White,
-    onSurface = Color(0xFF111111),
-    surfaceVariant = Color(0xFFF2F3F4),
-    onSurfaceVariant = Color(0xFF555555),
+// Light scheme resolves to the same AMOLED-black monochrome so the visual
+// layer stays strictly monochrome even if the stored theme preference is
+// light — the setting itself keeps working (functionality untouched).
+private val LightScheme = darkColorScheme(
+    primary = MonoPrimary,
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF141414),
+    onPrimaryContainer = MonoPrimary,
+    secondary = White60,
+    onSecondary = Color(0xFF000000),
+    background = Color(0xFF000000),
+    onBackground = MonoPrimary,
+    surface = Color(0xFF000000),
+    onSurface = MonoPrimary,
+    surfaceVariant = Color(0xFF000000),
+    onSurfaceVariant = MonoSecondary,
     surfaceTint = Color.Transparent,
-    outline = Color(0x12111214),
-    outlineVariant = Color(0x0D111214),
-    error = ErrorLight,
-    onError = Color.White,
-    errorContainer = Color(0xFFFEE2E2),
-    onErrorContainer = Color(0xFF7F1D1D),
-    tertiary = Color(0xFF7A7A7A)
+    outline = Divider08,
+    outlineVariant = Divider06,
+    error = White60,
+    onError = Color(0xFF000000),
+    errorContainer = Color(0xFF141414),
+    onErrorContainer = MonoPrimary,
+    tertiary = White40
 )
 
 /** Extra semantic tokens not covered by Material3. */
@@ -91,26 +103,30 @@ data class PsExtraColors(
 )
 
 private val DarkExtra = PsExtraColors(
-    success = SuccessDark,
-    warning = WarningDark,
-    tertiaryText = Color(0xFF777777),
-    subtleBorder = Color(0x1AFFFFFF),
-    track = Color(0x14FFFFFF),
-    glass = Color(0x09000000),
+    success = LiveMint,
+    warning = White60,
+    tertiaryText = White40,
+    subtleBorder = Divider08,
+    track = Divider08,
+    glass = Color(0x0FFFFFFF),
     isDark = true
 )
 
 private val LightExtra = PsExtraColors(
-    success = SuccessLight,
-    warning = WarningLight,
-    tertiaryText = Color(0xFF7A7A7A),
-    subtleBorder = Color(0x12111214),
-    track = Color(0xFFE5E6E8),
-    glass = Color(0xCCFFFFFF),
-    isDark = false
+    success = LiveMint,
+    warning = White60,
+    tertiaryText = White40,
+    subtleBorder = Divider08,
+    track = Divider08,
+    glass = Color(0x0FFFFFFF),
+    isDark = true
 )
 
 val LocalPsExtra = staticCompositionLocalOf { DarkExtra }
+
+/** Mint live-dot tokens (single semantic exception). */
+val LiveDot = LiveMint
+val LiveDotGlow = Color(0xE634D399) // rgba(52,211,153,0.9) glow
 
 
 

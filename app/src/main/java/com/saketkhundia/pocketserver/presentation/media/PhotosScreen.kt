@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,10 +22,6 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +55,7 @@ import com.saketkhundia.pocketserver.presentation.components.AmoledBackground
 import com.saketkhundia.pocketserver.presentation.components.EmptyState
 import com.saketkhundia.pocketserver.presentation.components.ErrorState
 import com.saketkhundia.pocketserver.presentation.components.LoadingRows
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsRadius
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.launch
@@ -78,9 +76,11 @@ fun PhotosScreen(onBack: () -> Unit) {
     var viewerIndex by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
                     Column {
                         Text("Photos", style = MaterialTheme.typography.headlineLarge)
@@ -93,9 +93,9 @@ fun PhotosScreen(onBack: () -> Unit) {
                         }
                     }
                 },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(PsIcons.Back, null) } },
                 actions = {
-                    IconButton(onClick = { vm.refresh() }) { Icon(Icons.Filled.Refresh, contentDescription = "Refresh") }
+                    IconButton(onClick = { vm.refresh() }) { Icon(PsIcons.Refresh, contentDescription = "Refresh") }
                 }
             )
         },
@@ -175,7 +175,7 @@ fun PhotosScreen(onBack: () -> Unit) {
                     onClick = { viewerIndex = null },
                     modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
                         .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f), androidx.compose.foundation.shape.CircleShape)
-                ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = androidx.compose.ui.graphics.Color.White) }
+                ) { Icon(PsIcons.Back, null, tint = androidx.compose.ui.graphics.Color.White) }
                 IconButton(
                     onClick = {
                         val item = state.photos[pager.currentPage]
@@ -193,7 +193,7 @@ fun PhotosScreen(onBack: () -> Unit) {
                     },
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
                         .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.4f), androidx.compose.foundation.shape.CircleShape)
-                ) { Icon(Icons.Filled.Share, null, tint = androidx.compose.ui.graphics.Color.White) }
+                ) { Icon(PsIcons.Share, null, tint = androidx.compose.ui.graphics.Color.White) }
                 Text(
                     "${pager.currentPage + 1} / ${state.photos.size}",
                     style = MaterialTheme.typography.bodySmall,

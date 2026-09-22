@@ -12,17 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.RocketLaunch
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,7 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,8 +32,8 @@ import com.saketkhundia.pocketserver.PocketServerApp
 import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassButton
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSecondaryButton
-import com.saketkhundia.pocketserver.presentation.glass.LocalGlassColors
-import com.saketkhundia.pocketserver.presentation.theme.PsRadius
+import com.saketkhundia.pocketserver.presentation.glass.LiquidIconTile
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.launch
 
@@ -74,27 +67,24 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     verticalArrangement = Arrangement.Center
                 ) {
                     val (icon, title, subtitle) = when (page) {
-                        0 -> Triple(Icons.Filled.Dns, "Pocket Server", "Your phone.\nYour files.\nYour server.")
-                        1 -> Triple(Icons.Filled.Computer, "Connect any device", "Laptop → Phone\nPhone → Tablet\nDesktop → Phone")
-                        else -> Triple(Icons.Filled.RocketLaunch, "One tap", "Start the server and share your URL with any device on the same Wi-Fi.")
+                        0 -> Triple(PsIcons.Server, "Pocket Server", "Your phone.\nYour files.\nYour server.")
+                        1 -> Triple(PsIcons.Globe, "Connect any device", "Laptop → Phone\nPhone → Tablet\nDesktop → Phone")
+                        else -> Triple(PsIcons.Play, "One tap", "Start the server and share your URL with any device on the same Wi-Fi.")
                     }
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .size(112.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(icon, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
-                    }
+                    LiquidIconTile(icon = icon, tileSize = 112.dp, glyphSize = 48.dp)
                     Spacer(Modifier.height(PsSpacing.xxl))
-                    Text(title, style = MaterialTheme.typography.displayMedium, textAlign = TextAlign.Center)
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.displayMedium,
+                        textAlign = TextAlign.Center,
+                        color = Color.White.copy(alpha = 0.95f)
+                    )
                     Spacer(Modifier.height(PsSpacing.md))
                     Text(
                         subtitle,
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White.copy(alpha = 0.40f)
                     )
                 }
             }
@@ -122,7 +112,6 @@ fun OnboardingScreen(onDone: () -> Unit) {
 
 @Composable
 private fun Dots(current: Int, total: Int) {
-    val g = LocalGlassColors.current
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         repeat(total) { i ->
             val selected = i == current
@@ -137,8 +126,8 @@ private fun Dots(current: Int, total: Int) {
                     .height(8.dp)
                     .width(dotWidth)
                     .background(
-                        if (selected) g.gold
-                        else g.textTertiary.copy(alpha = 0.35f),
+                        if (selected) Color.White.copy(alpha = 0.95f)
+                        else Color.White.copy(alpha = 0.35f),
                         RoundedCornerShape(4.dp)
                     )
             )

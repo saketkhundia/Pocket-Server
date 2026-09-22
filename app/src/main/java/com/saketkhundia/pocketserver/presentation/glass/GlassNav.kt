@@ -1,13 +1,12 @@
 package com.saketkhundia.pocketserver.presentation.glass
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -20,51 +19,49 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
 
 /**
- * AMOLED BOTTOM NAVIGATION — 4 EXACTLY-EQUAL CELLS.
+ * TAB BAR — sliding pill + hold-and-slide + pop. Exact spec.
  *
- * Layout (the bug fix):
- * - Bar: FULL WIDTH × FIXED 68dp height, 16dp horizontal / 12dp bottom margin.
- * - Inside: ONE Row(fillMaxSize) with EXACTLY 4 children, each
- *   Box(Modifier.weight(1f).fillMaxHeight()) → exactly 25% each.
- *   No wrapContent, no IntrinsicSize, no content-based widths, identical
- *   padding in every cell.
- * - The selected background is sized from the SAME cell grid
- *   (cellW = maxWidth / 4 → pill = cellW − 6dp × bar − 8dp) and drawn as a
- *   single shared pill BEHIND the Row. It never uses fillMaxSize() at the
- *   bar level, so it can never become a full-bar/full-height rectangle.
- *
- * Animation: POSITION ONLY (GPU translationX, 175ms). Size is fixed —
- * never animated, never derived from text.
- *
- * SINGLE SOURCE OF TRUTH: [currentRoute] from NavController only.
- * Tap → onSelect immediately (no IO first); content loads async.
- *
- * Paint (dark): 0.035 white bar, 0.09 selected, 0.10 border.
- * Paint (light): white-0.88 bar, #E8E9EB pill, 0.07 border, 0 4/20 0.08 shadow.
- * Selected #FFFFFF/#111111, unselected #666666/#888888. No gold, no blue.
- * No blur modifiers, no animated shadows — cheapest component to render.
+ * Bar: 4-equal-column grid, padding 8px, radius 28, elevated-glass 0.06.
+ * Shared pill behind buttons: width (100%-16px)/4, translateX(i*100%),
+ * glass 0.20->0.07, 0.16 border, radius 20 — glides, never blinks.
+ * Motion: transform 0.38s cubic-bezier(0.32,0.72,0,1). Active icon 1.1x
+ * same easing; active 95% white, inactive 35%.
+ * Hold-and-slide: press-and-hold + pointer capture maps finger X to nearest
+ * tab, switches live across segments. Vertical scroll unaffected (bar only
+ * consumes its own gestures).
+ * Dock pop: proximity pop=max(0,1-|fingerT-tabCenter|x4); icon
+ * translateY(-7px x pop) scale(active?1.1:1+pop x 0.28), 0.1s tracking,
+ * springs back on release; near-finger brightens to 95%. 8ms haptic tick
+ * per crossing (guarded).
  */
+
+private val TabPillEasing = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
+
 @Composable
 fun LiquidGlassBottomNavigation(
     tabs: List<GlassTab>,
@@ -75,103 +72,122 @@ fun LiquidGlassBottomNavigation(
     require(tabs.size == 4) { "Bottom nav requires exactly 4 tabs" }
     val selectedIndex = tabs.indexOfFirst { it.route == currentRoute }.takeIf { it >= 0 } ?: 0
     val density = LocalDensity.current
-    val dark = LocalGlassColors.current.isDark
-    // Bar material, explicit per theme. Dark: near-black film. Light: flat
-    // white-0.88 + 0.07 hairline + one soft shadow. No wash, no blur —
-    // restraint keeps it crisp against the page.
-    val barShape = RoundedCornerShape(GlassShapes.nav)
+    val haptics = LocalHapticFeedback.current
+    var held by remember { mutableStateOf(false) }
+    var fingerT by remember { mutableFloatStateOf(-1f) } // -1 = released
+    var lastTickIndex by remember { mutableStateOf(selectedIndex) }
+
+    fun tick(index: Int) {
+        if (index == lastTickIndex) return
+        lastTickIndex = index
+        try {
+            // ~8ms tick, guarded (some devices throw with no vibrator).
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        } catch (_: Exception) {}
+    }
+
+    val barShape = RoundedCornerShape(GlassShapes.nav) // 24dp
     Box(
         modifier = modifier.fillMaxWidth().navigationBarsPadding()
             .padding(horizontal = 16.dp).padding(bottom = 12.dp),
         contentAlignment = Alignment.Center
     ) {
+        // See-through bar: fully transparent fill so scrolling content shows
+        // underneath. Only the hairline border defines the floating shape;
+        // the tab pills keep their own glass backgrounds.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(68.dp)
-                .shadow(
-                    12.dp, barShape,
-                    ambientColor = Color.Black.copy(alpha = if (dark) 0.50f else 0.08f),
-                    spotColor = Color.Black.copy(alpha = if (dark) 0.40f else 0.05f)
-                )
                 .clip(barShape)
-                .background(
-                    if (dark) Color.White.copy(alpha = 0.035f)
-                    else LocalGlassColors.current.surfaceNav
-                )
-                .border(
-                    1.dp,
-                    if (dark) Color.White.copy(alpha = 0.10f) else Color(0xFF111418).copy(alpha = 0.07f),
-                    barShape
-                )
+                .border(1.dp, Color.White.copy(alpha = 0.10f), barShape)
+                .pointerInput(tabs, selectedIndex) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        held = true
+                        val w = size.width.toFloat().coerceAtLeast(1f)
+                        var t = (down.position.x / w).coerceIn(0f, 1f)
+                        fingerT = t
+                        var index = ((t * 4).toInt()).coerceIn(0, 3)
+                        if (index != selectedIndex) {
+                            onSelect(tabs[index].route)
+                            tick(index)
+                        } else {
+                            lastTickIndex = index
+                        }
+                        var pid = down.id
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == pid }
+                            if (change == null) {
+                                // New pointer took over (multi-touch): track first pressed.
+                                val next = event.changes.firstOrNull { it.pressed }
+                                if (next == null) break
+                                pid = next.id
+                                continue
+                            }
+                            if (!change.pressed) break
+                            t = (change.position.x / w).coerceIn(0f, 1f)
+                            fingerT = t
+                            val ni = ((t * 4).toInt()).coerceIn(0, 3)
+                            if (ni != index) {
+                                index = ni
+                                onSelect(tabs[ni].route)
+                                tick(ni)
+                            }
+                            change.consume()
+                        }
+                        held = false
+                        fingerT = -1f
+                    }
+                }
         ) {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                // Cell grid measured on the EXACT area the Row below fills:
-                // no padding between this scope and the Row, so cell i owns
-                // [i*cellW,(i+1)*cellW] in both.
-                val cellW: Dp = maxWidth / 4
-                val cellPx = with(density) { cellW.toPx() }
-                val insetPx = with(density) { 3.dp.toPx() }
-                // Position-only animation: same size every frame.
+            BoxWithConstraints(Modifier.fillMaxSize().padding(8.dp)) {
+                val pillW = (maxWidth - 0.dp) / 4 // (100% - 16px)/4 incl. 8px bar padding each side
+                val pillPx = with(density) { pillW.toPx() }
+                // Glide: translateX(activeIndex * 100%), 0.38s iOS spring.
                 val pillX by animateFloatAsState(
-                    targetValue = cellPx * selectedIndex,
-                    animationSpec = tween(175, easing = FastOutSlowInEasing),
+                    targetValue = pillPx * selectedIndex,
+                    animationSpec = tween(GlassMotion.tabPillMs, easing = TabPillEasing),
                     label = "navPillX"
                 )
-                // Pill: white glass on AMOLED black; flat #E5E6E8 + hairline
-                // in light — quiet, exact, never floating. Same size always.
-                val pillShape = RoundedCornerShape(18.dp)
-                // Shared pill BEHIND the Row: fixed (cellW−6dp × bar−8dp).
+                val pillShape = RoundedCornerShape(GlassShapes.tabPill) // 18dp
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(top = 4.dp)
-                        .width(cellW - 6.dp)
-                        .height(maxHeight - 8.dp)
-                        .graphicsLayer { translationX = pillX + insetPx }
-                        .then(
-                            if (dark) Modifier.shadow(
-                                3.dp, pillShape,
-                                ambientColor = Color.Black.copy(alpha = 0.30f)
-                            ) else Modifier
-                        )
+                        .size(width = pillW, height = maxHeight)
+                        .graphicsLayer { translationX = pillX }
                         .clip(pillShape)
+                        .background(Color.White.copy(alpha = 0.12f))
                         .background(
-                            if (dark) Color.White.copy(alpha = 0.09f)
-                            else Color(0xFFE5E6E8)
+                            Brush.verticalGradient(
+                                colors = listOf(Color.White.copy(alpha = 0.06f), Color.Transparent),
+                                endY = 80f
+                            )
                         )
-                        .then(
-                            // Dark-only crown lift; light stays perfectly flat.
-                            if (dark) Modifier.background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.10f),
-                                        Color.Transparent
-                                    ),
-                                    endY = 44f
-                                )
-                            ) else Modifier
-                        )
-                        .border(
-                            1.dp,
-                            if (dark) Color.White.copy(alpha = 0.10f)
-                            else Color(0xFF111418).copy(alpha = 0.06f),
-                            pillShape
-                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.14f), pillShape)
                 )
-                // Content Row ON TOP: 4 identical 25% cells.
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     tabs.forEachIndexed { i, tab ->
-                        GlassNavCell(
-                            label = tab.label,
-                            icon = tab.icon,
-                            selected = i == selectedIndex,
-                            onClick = { if (i != selectedIndex) onSelect(tab.route) },
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        )
+                        key(tab.route) {
+                            GlassNavCell(
+                                label = tab.label,
+                                icon = tab.icon,
+                                selected = i == selectedIndex,
+                                fingerT = if (held && fingerT >= 0f) fingerT else null,
+                                tabIndex = i,
+                                onClick = {
+                                    if (i != selectedIndex) {
+                                        onSelect(tab.route)
+                                        tick(i)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            )
+                        }
                     }
                 }
             }
@@ -186,43 +202,117 @@ private fun GlassNavCell(
     label: String,
     icon: ImageVector,
     selected: Boolean,
+    fingerT: Float?,
+    tabIndex: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // One 25% cell: full-cell touch area, centered column, identical metrics.
-    // Selected #111 / unselected #8A8A8A in light; white / tertiary in dark.
-    // Colors resolve from tokens + theme — never hardcoded per screen.
-    val c = LocalGlassColors.current
-    val unselected = if (c.isDark) c.textTertiary else Color(0xFF8A8A8A)
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val press by animateFloatAsState(
-        if (pressed) 0.96f else 1f,
-        tween(110, easing = FastOutSlowInEasing), label = "navPress"
+    val density = LocalDensity.current
+    val pxPerDp = with(density) { 1.dp.toPx() }
+    val tabCenter = (tabIndex + 0.5f) / 4f
+    val pop = if (fingerT != null) {
+        (1f - kotlin.math.abs(fingerT - tabCenter) * 4f).coerceAtLeast(0f)
+    } else 0f
+    val targetScale = if (selected) 1.1f else 1f + pop * 0.28f
+    val targetY = -7f * pop
+    // Fast 0.1s tracking easing; springs back on release (pop -> 0).
+    val scale by animateFloatAsState(targetScale, tween(GlassMotion.scrubMs, easing = TabPillEasing), label = "navPopS$tabIndex")
+    val ty by animateFloatAsState(targetY, tween(GlassMotion.scrubMs, easing = TabPillEasing), label = "navPopY$tabIndex")
+    val activeScale by animateFloatAsState(
+        if (selected) 1.1f else 1f,
+        tween(GlassMotion.tabPillMs, easing = TabPillEasing), label = "navActive$tabIndex"
     )
-    val content: @Composable () -> Unit = {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    val combined = if (fingerT != null) scale else activeScale
+    val tint = when {
+        selected -> Color.White.copy(alpha = 0.95f)
+        pop > 0.35f -> Color.White.copy(alpha = 0.95f)
+        else -> Color.White.copy(alpha = 0.35f)
+    }
+    Box(
+        modifier = modifier.clip(RoundedCornerShape(GlassShapes.tabPill)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 icon, label,
-                tint = if (selected) c.textPrimary else unselected,
-                modifier = Modifier.size(24.dp)
+                tint = tint,
+                modifier = Modifier
+                    .size(24.dp)
+                    .graphicsLayer {
+                        scaleX = combined
+                        scaleY = combined
+                        translationY = if (fingerT != null) ty * pxPerDp else 0f
+                    }
             )
             Spacer(Modifier.height(3.dp))
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (selected) c.textPrimary else unselected
+                style = MaterialTheme.typography.labelSmall, // 10px semibold
+                color = tint
             )
         }
     }
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .graphicsLayer { scaleX = press; scaleY = press },
-        contentAlignment = Alignment.Center,
-        content = { content() }
-    )
+}
+
+/**
+ * Content swipe: horizontal swipe beyond 64px advances/retreats one tab
+ * (clamped); vertical scroll unaffected (only horizontal drag consumed).
+ */
+@Composable
+fun Modifier.tabSwipeToNavigate(
+    currentIndex: Int,
+    tabCount: Int,
+    onSelect: (Int) -> Unit
+): Modifier {
+    val density = LocalDensity.current
+    val thresholdPx = with(density) { 64.dp.toPx() }
+    return this.pointerInput(currentIndex, tabCount) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            var totalX = 0f
+            var totalY = 0f
+            var fired = false
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                if (!change.pressed) break
+                val delta = change.position - change.previousPosition
+                totalX += delta.x
+                totalY += delta.y
+                if (!fired && kotlin.math.abs(totalX) > thresholdPx && kotlin.math.abs(totalX) > kotlin.math.abs(totalY) * 1.4f) {
+                    val next = if (totalX < 0) (currentIndex + 1).coerceAtMost(tabCount - 1)
+                    else (currentIndex - 1).coerceAtLeast(0)
+                    if (next != currentIndex) onSelect(next)
+                    fired = true
+                    change.consume()
+                    break
+                }
+                if (kotlin.math.abs(totalY) > kotlin.math.abs(totalX) * 1.4f) {
+                    // Vertical scroll — do not consume, let LazyColumn have it.
+                    break
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Tab content crossfade: fadeSlideUp (opacity 0->1, translateY 12px->0,
+ * 0.3s ease-out) keyed per tab.
+ */
+@Composable
+fun TabContentCrossfade(
+    tabKey: Any,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    key(tabKey) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = true,
+            enter = androidx.compose.animation.fadeIn(tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) +
+                androidx.compose.animation.slideInVertically(tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { (it * 12f / 200f).toInt().coerceAtLeast(12) },
+            label = "tabCrossfade$tabKey",
+            modifier = modifier
+        ) { content() }
+    }
 }

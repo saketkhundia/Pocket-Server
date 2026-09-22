@@ -4,14 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +36,7 @@ import com.saketkhundia.pocketserver.presentation.components.MonoText
 import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassListItem
 import com.saketkhundia.pocketserver.presentation.home.rememberSharedHomeViewModel
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.launch
 
@@ -71,15 +70,17 @@ fun DeveloperScreen(onBack: () -> Unit) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Developer", style = MaterialTheme.typography.headlineLarge) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(PsIcons.Back, null) } },
                 actions = {
                     IconButton(onClick = {
                         clipboard.setText(AnnotatedString(info))
                         scope.launch { snackbar.showSnackbar("Technical info copied") }
-                    }) { Icon(Icons.Filled.ContentCopy, null) }
+                    }) { Icon(PsIcons.Copy, null) }
                 }
             )
         },

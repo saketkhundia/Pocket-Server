@@ -13,16 +13,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +52,7 @@ import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassButton
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSecondaryButton
 import com.saketkhundia.pocketserver.presentation.home.rememberSharedHomeViewModel
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -93,10 +91,12 @@ fun QrScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) { entered = true }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(PsIcons.Back, null) } }
             )
         }
     ) { padding ->
@@ -163,13 +163,13 @@ fun QrScreen(onBack: () -> Unit) {
                         label = "Copy link",
                         onClick = { clipboard.setText(AnnotatedString(url)) },
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.ContentCopy
+                        icon = PsIcons.Copy
                     )
                     LiquidGlassButton(
                         label = "Share",
                         onClick = { vm.shareUrl(ctx) },
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.Share
+                        icon = PsIcons.Share
                     )
                 }
             }

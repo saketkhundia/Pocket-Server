@@ -18,16 +18,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -49,7 +49,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.saketkhundia.pocketserver.PocketServerApp
 import com.saketkhundia.pocketserver.domain.model.AppSettings
-import com.saketkhundia.pocketserver.domain.model.AppThemeMode
 import com.saketkhundia.pocketserver.presentation.components.DialogEntrance
 import com.saketkhundia.pocketserver.presentation.components.Eyebrow
 import com.saketkhundia.pocketserver.presentation.glass.GlassLevel
@@ -142,12 +141,14 @@ fun SettingsScreen(
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Settings", style = MaterialTheme.typography.headlineLarge) },
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
                     containerColor = androidx.compose.ui.graphics.Color.Transparent
-                )
+                ),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -213,7 +214,7 @@ fun SettingsScreen(
                                         Text(
                                             if (selected) "Selected" else "",
                                             style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = Color.White.copy(alpha = 0.95f)
                                         )
                                     }
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -236,11 +237,6 @@ fun SettingsScreen(
                             modifier = Modifier.padding(vertical = 6.dp)
                         )
                     }
-                }
-            }
-            item(key = "appearance", contentType = "group") {
-                SettingsGroup(title = "Appearance") {
-                    ThemeRow(current = settings.themeMode, onPick = { vm.setTheme(it) })
                 }
             }
             item(key = "advanced", contentType = "group") {
@@ -275,9 +271,9 @@ private fun ValueRow(label: String, value: String, onClick: () -> Unit) {
             title = label, subtitle = null,
             trailing = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(value, style = MaterialTheme.typography.bodySmall, color = g.textSecondary)
+                    Text(value, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.60f))
                     Spacer(Modifier.width(6.dp))
-                    androidx.compose.material3.Icon(Icons.Outlined.ChevronRight, null, tint = g.textTertiary, modifier = Modifier.size(18.dp))
+                    androidx.compose.material3.Icon(com.saketkhundia.pocketserver.presentation.theme.PsIcons.ChevronRight, null, tint = Color.White.copy(alpha = 0.30f), modifier = Modifier.size(18.dp))
                 }
             },
             onClick = onClick
@@ -300,38 +296,19 @@ private fun SwitchRow(label: String, subtitle: String, checked: Boolean, onChang
 
 @Composable
 private fun NavRow(label: String, destructive: Boolean = false, onClick: () -> Unit) {
-    val g = LocalGlassColors.current
     Column {
         LiquidGlassListItem(
             title = label, subtitle = null,
             trailing = {
                 androidx.compose.material3.Icon(
-                    Icons.Outlined.ChevronRight, null,
-                    tint = if (destructive) g.error else g.textTertiary,
+                    com.saketkhundia.pocketserver.presentation.theme.PsIcons.ChevronRight, null,
+                    tint = Color.White.copy(alpha = 0.30f),
                     modifier = Modifier.size(18.dp)
                 )
             },
             onClick = onClick
         )
         Spacer(Modifier.height(8.dp))
-    }
-}
-
-@Composable
-private fun ThemeRow(current: AppThemeMode, onPick: (AppThemeMode) -> Unit) {
-    val g = LocalGlassColors.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(AppThemeMode.SYSTEM, AppThemeMode.DARK, AppThemeMode.LIGHT).forEach { mode ->
-            val label = mode.name.lowercase().replaceFirstChar { it.uppercase() }
-            LiquidGlassListItem(
-                title = label, subtitle = null,
-                selected = mode == current,
-                trailing = {
-                    if (mode == current) Text("Active", style = MaterialTheme.typography.labelLarge, color = g.goldSoft)
-                },
-                onClick = { onPick(mode) }
-            )
-        }
     }
 }
 
@@ -357,7 +334,7 @@ private fun EditDialog(
     var extra by remember { mutableStateOf("") }
     val g = LocalGlassColors.current
 
-    LiquidGlassSurface(level = GlassLevel.L3, radius = com.saketkhundia.pocketserver.presentation.glass.GlassShapes.large, glow = g.gold, glowAlpha = 0.10f, frosted = true, modifier = Modifier.fillMaxWidth()) {
+    LiquidGlassSurface(level = GlassLevel.L3, radius = com.saketkhundia.pocketserver.presentation.glass.GlassShapes.large, glow = null, frosted = true, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, color = g.textPrimary)
             LiquidGlassTextField(

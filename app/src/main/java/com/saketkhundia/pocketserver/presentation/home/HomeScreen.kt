@@ -29,24 +29,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.PieChart
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,12 +56,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassAddressBar
+import com.saketkhundia.pocketserver.presentation.glass.LiquidIconTile
+import com.saketkhundia.pocketserver.presentation.motion.floatAmbient
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.domain.model.MdnsStatus
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
 import com.saketkhundia.pocketserver.server.mdns.loopbackUrl
@@ -153,6 +145,7 @@ fun HomeScreen(
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
@@ -164,7 +157,9 @@ fun HomeScreen(
                 // ── Header: identity first, 28-30sp tight, 44dp glass buttons ──
                 item(key = "header", contentType = "header") {
                     Entrance(visible = entered, delay = 0) {
-                        Spacer(Modifier.height(20.dp))
+                        // Tight to the status bar: the Scaffold already applies
+                        // the status-bar inset, so only a small gap is needed.
+                        Spacer(Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -172,28 +167,32 @@ fun HomeScreen(
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     "Pocket Server",
-                                    style = MaterialTheme.typography.displayMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = (-0.3).sp
+                                    ),
+                                    color = Color.White.copy(alpha = 0.95f)
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     "Your phone. Your server.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp),
+                                    color = Color(0xFF858585)
                                 )
                             }
                             HeaderIconButton(
                                 onClick = onOpenActivity,
                                 dot = status == ServerStatus.RUNNING
                             ) {
-                                Icon(Icons.Outlined.Notifications, contentDescription = "Activity")
+                                Icon(PsIcons.Bell, contentDescription = "Activity", tint = Color.White.copy(alpha = 0.95f), modifier = Modifier.size(20.dp))
                             }
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(8.dp))
                             HeaderIconButton(onClick = onOpenSettings) {
-                                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                                Icon(PsIcons.Settings, contentDescription = "Settings", tint = Color.White.copy(alpha = 0.95f), modifier = Modifier.size(20.dp))
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                     }
                 }
 
@@ -261,26 +260,26 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Recent activity: breathing room, 16-18sp header, 62dp rows ──
+                // ── Recent activity: one continuous glass list ──
                 item(key = "activity", contentType = "activity") {
                     Entrance(visible = entered, delay = 120) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                Icons.Filled.History,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                "RECENT ACTIVITY",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.6.sp
+                                ),
+                                color = Color.White.copy(alpha = 0.30f),
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(Modifier.width(8.dp))
-                            Text("Recent Activity", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                             Text(
                                 "View all  →",
                                 style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = Color.White.copy(alpha = 0.60f),
                                 modifier = Modifier.clickable(onClick = onOpenActivity).padding(8.dp)
                             )
                         }
@@ -293,17 +292,28 @@ fun HomeScreen(
                             )
                         }
                     } else {
-                        // Standalone white rows (no nested card-in-card):
-                        // each row owns its surface, borders never stack.
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            recentLogs.forEach { log ->
-                                ActivityRow(
-                                    title = activityTitle(log.method, log.path),
-                                    time = FormatUtils.relativeTime(log.timestampMs),
-                                    kind = activityKindOf(log.method, log.status),
-                                    showDivider = false,
-                                    onClick = onOpenActivity
-                                )
+                        // One continuous glass container, subtle internal
+                        // dividers — not a card per row.
+                        GlassCard(modifier = Modifier.fillMaxWidth(), radius = 20.dp) {
+                            Column(Modifier.padding(vertical = 6.dp)) {
+                                recentLogs.forEachIndexed { i, log ->
+                                    ActivityRow(
+                                        title = activityTitle(log.method, log.path),
+                                        time = FormatUtils.relativeTime(log.timestampMs),
+                                        kind = activityKindOf(log.method, log.status),
+                                        showDivider = false,
+                                        flat = true,
+                                        onClick = onOpenActivity
+                                    )
+                                    if (i < recentLogs.size - 1) {
+                                        Box(
+                                            Modifier.fillMaxWidth()
+                                                .padding(start = 62.dp, end = 14.dp)
+                                                .height(1.dp)
+                                                .background(Color.White.copy(alpha = 0.06f))
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -322,24 +332,20 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth().padding(PsSpacing.lg),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(androidx.compose.foundation.shape.CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Filled.Wifi, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                            }
+                            LiquidIconTile(icon = PsIcons.Wifi, tileSize = 44.dp, glyphSize = 20.dp)
                             Spacer(Modifier.width(PsSpacing.md))
                             Column(Modifier.weight(1f)) {
-                                Text("Having trouble connecting?", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "Having trouble connecting?",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = Color.White.copy(alpha = 0.95f)
+                                )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     if (expanded) troubleshoot
                                     else "Make sure your device is on the same Wi-Fi network.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = Color.White.copy(alpha = 0.40f)
                                 )
                                 AnimatedVisibility(
                                     visible = expanded,
@@ -351,21 +357,21 @@ fun HomeScreen(
                                     Column {
                                         Spacer(Modifier.height(8.dp))
                                         if (candidates.isNotEmpty()) {
-                                            MonoText(candidates.joinToString(), small = true, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            MonoText(candidates.joinToString(), small = true, color = Color.White.copy(alpha = 0.40f))
                                         }
                                         Spacer(Modifier.height(8.dp))
                                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                             Text(
                                                 "Refresh",
                                                 style = MaterialTheme.typography.labelLarge,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = Color.White.copy(alpha = 0.95f),
                                                 modifier = Modifier.clickable { vm.refreshNetwork() }
                                             )
                                             if (ipAddress != null) {
                                                 Text(
                                                     "Test in browser",
                                                     style = MaterialTheme.typography.labelLarge,
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = Color.White.copy(alpha = 0.95f),
                                                     modifier = Modifier.clickable {
                                                         try {
                                                             ctx.startActivity(
@@ -383,8 +389,8 @@ fun HomeScreen(
                                 }
                             }
                             Icon(
-                                Icons.Filled.ChevronRight, null,
-                                tint = LocalPsExtra.current.tertiaryText,
+                                PsIcons.ChevronRight, null,
+                                tint = Color.White.copy(alpha = 0.30f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -434,8 +440,8 @@ private fun HeaderIconButton(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(extra.glass)
-            .border(1.dp, extra.subtleBorder, CircleShape)
+            .background(Color.White.copy(alpha = 0.06f))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -446,7 +452,7 @@ private fun HeaderIconButton(
                     Modifier
                         .size(9.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(com.saketkhundia.pocketserver.presentation.theme.LiveDot)
                 )
             }
         }
@@ -476,16 +482,21 @@ private fun HeroCard(
     onOpenMedia: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    // Subtle "alive" response when running: illustration breathes 1.0 → 1.03
-    // on a GPU layer. No particles, no bounce — professional, battery-safe.
-    val graphicScale by animateFloatAsState(
-        targetValue = if (running) 1.03f else 1f,
-        animationSpec = tween(400, easing = FastOutSlowInEasing),
-        label = "heroGlow"
-    )
     GlassCard(modifier = Modifier.fillMaxWidth(), radius = PsRadius.hero, frosted = true) {
         Column(Modifier.padding(PsSpacing.xl)) {
-            StatusPill(status)
+            // Signature: status pill top-left, 52px liquid server icon top-right.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatusPill(status, modifier = Modifier.weight(1f).wrapContentWidth(Alignment.Start))
+                LiquidIconTile(
+                    icon = PsIcons.Server,
+                    tileSize = 52.dp,
+                    glyphSize = 24.dp,
+                    modifier = Modifier.floatAmbient()
+                )
+            }
             Spacer(Modifier.height(PsSpacing.lg))
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
@@ -506,7 +517,12 @@ private fun HeroCard(
                                     ServerStatus.ERROR -> "Something went wrong"
                                     ServerStatus.STOPPED -> "Start your server"
                                 },
-                                style = MaterialTheme.typography.headlineLarge
+                                // Hero title 22-24sp semibold — the focal point.
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontSize = 23.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color.White.copy(alpha = 0.95f)
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
@@ -516,25 +532,16 @@ private fun HeroCard(
                                     ServerStatus.ERROR -> error ?: "The server could not start."
                                     ServerStatus.STOPPED -> "Your phone isn't sharing anything yet. Tap below to get started."
                                 },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                // Description 13sp, muted — never too bright.
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 13.sp,
+                                    lineHeight = 19.sp
+                                ),
+                                color = Color(0xFF8A8A8A)
                             )
                         }
                     }
                 }
-                Spacer(Modifier.width(PsSpacing.md))
-                ServerGraphic(
-                    running = running,
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .size(width = 80.dp, height = 104.dp)
-                        .graphicsLayer {
-                            scaleX = graphicScale
-                            scaleY = graphicScale
-                            // Spec presence: subtle but visible in both themes.
-                            alpha = 0.8f
-                        }
-                )
             }
             // URL row expands/collapses instead of popping in place.
             AnimatedVisibility(
@@ -546,17 +553,24 @@ private fun HeroCard(
             ) {
                 Column {
                     Spacer(Modifier.height(PsSpacing.lg))
+                    // Dark inset address bar (0.28 fill, 0.09 border, r16) + COPY.
+                    LiquidGlassAddressBar(
+                        text = (url ?: "").removePrefix("http://"),
+                        onCopy = onCopy
+                    )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        MonoText(url ?: "", color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
                         androidx.compose.material3.IconButton(onClick = onQr, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Filled.QrCode2, "Show QR code", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            Icon(PsIcons.Qr, "Show QR code", tint = Color.White.copy(alpha = 0.60f), modifier = Modifier.size(20.dp))
                         }
-                        androidx.compose.material3.IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Filled.ContentCopy, "Copy link", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                        }
+                        MonoText(
+                            "Show QR",
+                            small = true,
+                            color = Color.White.copy(alpha = 0.60f),
+                            modifier = Modifier.clickable(onClick = onQr).padding(8.dp)
+                        )
                     }
                     // Friendly name is primary; the working IP stays visible as
                     // fallback. UNAVAILABLE is stated honestly — never
@@ -568,21 +582,21 @@ private fun HeroCard(
                         MonoText(
                             "Fallback: ${ipFallback.removePrefix("http://")}",
                             small = true,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.40f)
                         )
                     }
                     if (mdnsChecking) {
                         Text(
                             "Checking local name…",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.40f)
                         )
                     } else if (mdnsUnavailable) {
                         Spacer(Modifier.height(2.dp))
                         Text(
                             "Local name unavailable on this network.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.40f)
                         )
                     }
                     Spacer(Modifier.height(PsSpacing.md))
@@ -591,7 +605,7 @@ private fun HeroCard(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         GlassButton(label = "Open Server", onClick = onOpenServer, modifier = Modifier.weight(1f))
-                        GlassButton(label = "Share", onClick = onShare, icon = Icons.Filled.Share, modifier = Modifier.weight(1f))
+                        GlassButton(label = "Share", onClick = onShare, icon = PsIcons.Share, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -620,7 +634,7 @@ private fun HeroCard(
                     1 -> GradientButton(
                         label = "Stop Server",
                         onClick = onStop,
-                        icon = Icons.Outlined.Stop,
+                        icon = PsIcons.Stop,
                         modifier = Modifier.fillMaxWidth()
                     )
                     2 -> GradientButton(
@@ -628,7 +642,7 @@ private fun HeroCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                     else -> GradientButton(
-                        label = "Start Server", onClick = onStart, icon = Icons.Outlined.PlayArrow,
+                        label = "Start Server", onClick = onStart, icon = PsIcons.Play,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -636,7 +650,7 @@ private fun HeroCard(
             Spacer(Modifier.height(PsSpacing.lg))
             Box(
                 Modifier.fillMaxWidth().height(1.dp)
-                    .background(LocalPsExtra.current.subtleBorder)
+                    .background(Color.White.copy(alpha = 0.08f))
             )
             Spacer(Modifier.height(PsSpacing.sm))
             Row(
@@ -644,22 +658,22 @@ private fun HeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 QuickAction(
-                    icon = Icons.Outlined.Folder, title = "Share Files", subtitle = "Anywhere",
+                    icon = PsIcons.Folder, title = "Share Files", subtitle = "Anywhere",
                     onClick = onOpenFiles, modifier = Modifier.weight(1f)
                 )
                 QuickDivider()
                 QuickAction(
-                    icon = Icons.Outlined.Image, title = "Photos", subtitle = "Backup",
+                    icon = PsIcons.Photos, title = "Photos", subtitle = "Backup",
                     onClick = onOpenPhotos, modifier = Modifier.weight(1f)
                 )
                 QuickDivider()
                 QuickAction(
-                    icon = Icons.Outlined.PlayArrow, title = "Media", subtitle = "Instant",
+                    icon = PsIcons.Media, title = "Media", subtitle = "Instant",
                     onClick = onOpenMedia, modifier = Modifier.weight(1f)
                 )
                 QuickDivider()
                 QuickAction(
-                    icon = Icons.Outlined.Language, title = "Web Server", subtitle = "Website",
+                    icon = PsIcons.Globe, title = "Web Server", subtitle = "Website",
                     onClick = onOpenSettings, modifier = Modifier.weight(1f)
                 )
             }
@@ -673,34 +687,40 @@ private fun QuickDivider() {
         Modifier
             .width(1.dp)
             .height(64.dp)
-            .background(LocalPsExtra.current.subtleBorder)
+            .background(Color.White.copy(alpha = 0.08f))
     )
 }
 
 @Composable
 private fun FoldersCard(count: Int, names: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    GlassCard(modifier = modifier, onClick = onClick) {
-        Column(Modifier.padding(18.dp)) {
+    GlassCard(modifier = modifier, radius = 20.dp, onClick = onClick) {
+        Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Folder, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Icon(PsIcons.Folder, null, tint = Color.White.copy(alpha = 0.95f), modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Shared Folders", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                Icon(Icons.Filled.ChevronRight, null, tint = LocalPsExtra.current.tertiaryText, modifier = Modifier.size(18.dp))
+                Text(
+                    "Shared Folders",
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                    color = Color.White.copy(alpha = 0.95f),
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(PsIcons.ChevronRight, null, tint = Color.White.copy(alpha = 0.30f), modifier = Modifier.size(16.dp))
             }
-            Spacer(Modifier.height(PsSpacing.md))
+            Spacer(Modifier.height(10.dp))
             Text(
                 "$count",
-                // Spec hierarchy: section number 22sp semibold.
+                // Card numeral: bold tabular-nums.
                 style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold,
+                    fontFeatureSettings = "tnum",
+                    color = Color.White.copy(alpha = 0.95f)
                 )
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 if (count == 0) "No folders yet" else "$count folder${if (count == 1) "" else "s"} · $names",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                color = Color.White.copy(alpha = 0.40f),
                 maxLines = 1
             )
         }
@@ -715,39 +735,44 @@ private fun StorageCard(
     fraction: Float,
     modifier: Modifier = Modifier
 ) {
-    GlassCard(modifier = modifier) {
-        Column(Modifier.padding(18.dp)) {
+    GlassCard(modifier = modifier, radius = 20.dp) {
+        Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.PieChart, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Icon(PsIcons.Storage, null, tint = Color.White.copy(alpha = 0.95f), modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Storage", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Storage",
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp),
+                    color = Color.White.copy(alpha = 0.95f)
+                )
             }
-            Spacer(Modifier.height(PsSpacing.md))
+            Spacer(Modifier.height(10.dp))
             Text(
                 if (free != null) "${FormatUtils.formatBytes(free)} free" else "—",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum"),
+                color = Color.White.copy(alpha = 0.95f)
             )
-            Spacer(Modifier.height(PsSpacing.md))
+            Spacer(Modifier.height(10.dp))
             StorageBar(progress = fraction)
-            Spacer(Modifier.height(PsSpacing.sm))
+            Spacer(Modifier.height(8.dp))
             if (used != null && total != null) {
                 Text(
                     "${FormatUtils.formatBytes(used)} used",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.40f),
                     maxLines = 1
                 )
                 Text(
                     "${FormatUtils.formatBytes(total)} total",
                     style = MaterialTheme.typography.bodySmall,
-                    color = LocalPsExtra.current.tertiaryText,
+                    color = Color.White.copy(alpha = 0.30f),
                     maxLines = 1
                 )
             } else {
                 Text(
                     "Device storage",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.White.copy(alpha = 0.40f)
                 )
             }
         }

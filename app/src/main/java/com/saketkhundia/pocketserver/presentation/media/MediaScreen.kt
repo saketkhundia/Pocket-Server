@@ -5,15 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +37,7 @@ import com.saketkhundia.pocketserver.presentation.components.ErrorState
 import com.saketkhundia.pocketserver.presentation.components.Eyebrow
 import com.saketkhundia.pocketserver.presentation.components.FileRow
 import com.saketkhundia.pocketserver.presentation.components.LoadingRows
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import com.saketkhundia.pocketserver.util.FormatUtils
 import kotlinx.coroutines.launch
@@ -72,13 +70,15 @@ fun MediaScreen(onBack: () -> Unit) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = { Text("Media", style = MaterialTheme.typography.headlineLarge) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(PsIcons.Back, null) } },
                 actions = {
-                    IconButton(onClick = { vm.refresh() }) { Icon(Icons.Filled.Refresh, contentDescription = "Refresh") }
+                    IconButton(onClick = { vm.refresh() }) { Icon(PsIcons.Refresh, contentDescription = "Refresh") }
                 }
             )
         },
@@ -114,7 +114,7 @@ fun MediaScreen(onBack: () -> Unit) {
                                     isDir = false,
                                     trailing = {
                                         IconButton(onClick = { play(item) }) {
-                                            Icon(Icons.Filled.PlayArrow, contentDescription = "Play")
+                                            Icon(PsIcons.Play, contentDescription = "Play")
                                         }
                                     },
                                     onClick = { play(item) },
@@ -135,7 +135,7 @@ fun MediaScreen(onBack: () -> Unit) {
                                     isDir = false,
                                     trailing = {
                                         IconButton(onClick = { play(item) }) {
-                                            Icon(Icons.Filled.PlayArrow, contentDescription = "Play")
+                                            Icon(PsIcons.Play, contentDescription = "Play")
                                         }
                                     },
                                     onClick = { play(item) },

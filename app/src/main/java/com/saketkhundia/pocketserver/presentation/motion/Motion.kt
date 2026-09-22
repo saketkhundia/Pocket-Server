@@ -3,6 +3,7 @@ package com.saketkhundia.pocketserver.presentation.motion
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -60,9 +61,9 @@ object PsMotion {
     fun <T> tweenNormal(): androidx.compose.animation.core.FiniteAnimationSpec<T> =
         tween(Normal, easing = FastOutSlowInEasing)
 
-    /** Spring for the bottom-dock pill — snappy but settled, no overshoot. */
+    /** Spring for the bottom-dock pill — iOS spring 0.38s cubic-bezier(0.32,0.72,0,1). */
     val dockSpring: androidx.compose.animation.core.FiniteAnimationSpec<Float> =
-        spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+        tween(380, easing = CubicBezierEasing(0.32f, 0.72f, 0f, 1f))
 }
 
 // ─── Reduced motion ─────────────────────────────────────────────
@@ -138,11 +139,11 @@ fun AnimatedContentTransitionScope<*>.backOut(): ExitTransition =
     fadeOut(tween(PsMotion.Normal)) +
         slideOutHorizontally(tween(PsMotion.Normal, easing = FastOutSlowInEasing)) { it / PsMotion.SlideDivisor }
 
-/** Tab-bar transition: even subtler — fade + tiny vertical lift, no horizontal sweep. */
+/** Tab-bar transition: fadeSlideUp — opacity 0->1, translateY 12px->0, 0.3s ease-out. */
 fun AnimatedContentTransitionScope<*>.tabIn(): EnterTransition =
-    fadeIn(tween(PsMotion.Normal)) +
-        slideInVertically(tween(PsMotion.Normal, easing = FastOutSlowInEasing)) { it / 20 }
+    fadeIn(tween(300, easing = FastOutSlowInEasing)) +
+        slideInVertically(tween(300, easing = FastOutSlowInEasing)) { (it * 12f / 200f).toInt().coerceAtLeast(12) }
 
 fun AnimatedContentTransitionScope<*>.tabOut(): ExitTransition =
-    fadeOut(tween(PsMotion.Fast)) +
-        slideOutVertically(tween(PsMotion.Fast, easing = FastOutSlowInEasing)) { it / 24 }
+    fadeOut(tween(150, easing = FastOutSlowInEasing)) +
+        slideOutVertically(tween(150, easing = FastOutSlowInEasing)) { -(it * 12f / 200f).toInt().coerceAtMost(-12) }

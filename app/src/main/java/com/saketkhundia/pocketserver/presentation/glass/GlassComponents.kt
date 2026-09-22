@@ -25,12 +25,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -48,10 +50,53 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
+
+// ─── Glass icon tile (one style for ALL icons) ─────────────────────
+// Flat transparent glass: 0.07 white fill, 0.10 border, one soft highlight.
+// Glyph #E5E5E5. No bevels, no graphite, no specular ellipses.
+// Sizes: 52/24 hero, 52/22 actions, 36/16 rows. Radius 32% of tile.
+
+@Composable
+fun LiquidIconTile(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    tileSize: Dp = 52.dp,
+    glyphSize: Dp = 24.dp,
+    contentDescription: String? = null
+) {
+    val tileShape = RoundedCornerShape(tileSize * 0.32f)
+    Box(
+        modifier = modifier
+            .size(tileSize)
+            .shadow(6.dp, tileShape, ambientColor = Color.Black.copy(alpha = 0.35f))
+            .clip(tileShape)
+            .background(Color.White.copy(alpha = 0.07f))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.06f),
+                        Color.Transparent
+                    ),
+                    endY = 80f
+                )
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.10f), tileShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            icon, contentDescription,
+            tint = Color(0xFFE5E5E5),
+            modifier = Modifier.size(glyphSize)
+        )
+    }
+}
 
 // ─── Card ───────────────────────────────────────────────────────────
 
@@ -68,9 +113,10 @@ fun LiquidGlassCard(
     glow = glow, onClick = onClick
 ) { content() }
 
-// ─── Buttons ────────────────────────────────────────────────────────
-// Primary: L4 glass + gold glow, white/gold text, 150-180ms press scale.
-// No bounce.
+// ─── Primary CTA ────────────────────────────────────────────────────
+// One strong white control: flat #F5F5F5, 50dp, radius 16, #111111 bold
+// label + icon, very subtle shadow. Press scales to 0.98.
+// Destructive/off/loading: same shape in grey glass, white label.
 
 @Composable
 fun LiquidGlassButton(
@@ -82,77 +128,66 @@ fun LiquidGlassButton(
     loading: Boolean = false,
     danger: Boolean = false
 ) {
-    val c = LocalGlassColors.current
-    val glow = if (danger) c.error else c.gold
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    // Production press: 0.98 scale, 110ms — subtle, no bounce.
     val scale by animateFloatAsState(
         if (pressed) 0.98f else 1f,
         tween(GlassMotion.press, easing = FastOutSlowInEasing), label = "btnPress"
     )
-    // Hierarchy per theme: dark gets L4 glass + white text; light gets a
-    // solid #111214 button + white text (glass-on-white has no presence
-    // for a primary CTA; pressed deepens to #1A1A1A). Danger stays
-    // red-on-glass in both.
-    if (!c.isDark && !danger && enabled && !loading) {
-        val shape = RoundedCornerShape(GlassShapes.button)
-        val bgTarget = if (pressed) Color(0xFF1A1A1A) else Color(0xFF111214)
-        val bg by androidx.compose.animation.animateColorAsState(
-            bgTarget, tween(GlassMotion.press), label = "ctaPressBg"
-        )
+    val shape = RoundedCornerShape(GlassShapes.button) // 16px
+
+    if (!danger && enabled && !loading) {
         Box(
             modifier = modifier
                 .graphicsLayer { scaleX = scale; scaleY = scale }
-                .shadow(10.dp, shape, ambientColor = Color.Black.copy(alpha = 0.22f))
+                .shadow(8.dp, shape, ambientColor = Color.Black.copy(alpha = 0.35f))
                 .clip(shape)
-                .background(bg)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
-                        endY = 120f
-                    )
-                )
-                .clickable(
-                    interactionSource = interaction,
-                    indication = null,
-                    onClick = onClick
-                ),
+                .background(Color(0xFFF5F5F5))
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(GlassDimens.ctaHeight),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (icon != null) {
-                    Icon(icon, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Icon(icon, null, tint = Color(0xFF111111), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                 }
-                Text(label, style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold, color = Color(0xFF111111)
+                    )
+                )
             }
         }
         return
     }
+    // Destructive / off / loading: same shape in grey glass, white label.
     LiquidGlassSurface(
         modifier = modifier.graphicsLayer { scaleX = scale; scaleY = scale },
-        level = GlassLevel.L4,
+        level = GlassLevel.L2,
         radius = GlassShapes.button,
-        glow = glow,
-        glowAlpha = if (danger) 0.12f else 0.12f,
-        borderAlpha = 0.16f,
+        glow = null,
+        borderAlpha = 0.14f,
         onClick = if (enabled && !loading) onClick else null
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(GlassDimens.ctaHeight),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (loading) {
-                GlassLoadingDots(color = if (danger) c.error else c.goldSoft)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White.copy(alpha = 0.9f),
+                    strokeWidth = 2.dp
+                )
             } else {
                 if (icon != null) {
-                    Icon(icon, null, tint = if (danger) c.error else c.goldSoft, modifier = Modifier.size(22.dp))
+                    Icon(icon, null, tint = Color.White.copy(alpha = 0.95f), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                 }
                 AnimatedContent(
@@ -162,9 +197,8 @@ fun LiquidGlassButton(
                 ) {
                     Text(
                         it,
-                        // 15-16sp semibold primary CTA.
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (danger) c.error else c.textPrimary
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White.copy(alpha = 0.95f)
                     )
                 }
             }
@@ -179,10 +213,10 @@ fun LiquidGlassSecondaryButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null
 ) {
-    val c = LocalGlassColors.current
     LiquidGlassSurface(
-        modifier = modifier, level = GlassLevel.L2,
-        radius = GlassShapes.button, onClick = onClick
+        modifier = modifier, level = GlassLevel.L1,
+        radius = GlassShapes.button, onClick = onClick,
+        borderAlpha = 0.10f
     ) {
         Row(
             Modifier.fillMaxWidth().padding(vertical = 14.dp),
@@ -190,10 +224,10 @@ fun LiquidGlassSecondaryButton(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
-                Icon(icon, null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                Icon(icon, null, tint = Color.White.copy(alpha = 0.95f), modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
             }
-            Text(label, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+            Text(label, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = 0.95f))
         }
     }
 }
@@ -214,26 +248,21 @@ fun LiquidGlassIconButton(
     LiquidGlassSurface(
         modifier = modifier.size(size).graphicsLayer { scaleX = scale; scaleY = scale },
         level = GlassLevel.L2,
-        radius = 100.dp,
+        radius = size * 0.32f,
         borderAlpha = 0.14f,
         onClick = onClick,
         contentAlignment = Alignment.Center
     ) { icon() }
 }
 
-@Composable
-private fun GlassLoadingDots(color: Color) {
-    val t = rememberInfiniteTransition(label = "dots")
-    val p by t.animateFloat(0f, 2f, infiniteRepeatable(tween(900)), label = "p")
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        repeat(3) { i ->
-            val a = 0.35f + 0.65f * ((p + i) % 3f / 2f)
-            Box(Modifier.size(7.dp).alpha(a).background(color, CircleShape))
-        }
-    }
-}
-
 // ─── Pills / status ─────────────────────────────────────────────────
+// Compact glass status pill (28-30dp): 0.07 fill, 0.10 border, 6-7dp dot,
+// 10-11sp letterspaced label. Status colors restrained to the dot only:
+// green running, amber starting, red offline/error.
+
+private val DotGreen = Color(0xFF6EE7B7)
+private val DotAmber = Color(0xFFF5B84B)
+private val DotRed = Color(0xFFFF6B6B)
 
 @Composable
 fun LiquidGlassPill(
@@ -242,76 +271,162 @@ fun LiquidGlassPill(
     dot: Color? = null,
     accent: Color? = null
 ) {
-    val c = LocalGlassColors.current
-    val ac = accent ?: c.gold
-    LiquidGlassSurface(modifier = modifier, level = GlassLevel.L3, radius = GlassShapes.pill, glow = dot ?: ac, glowAlpha = 0.12f) {
+    val ac = accent ?: Color.White.copy(alpha = 0.95f)
+    LiquidGlassSurface(modifier = modifier, level = GlassLevel.L1, radius = GlassShapes.pill, glow = null) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
             if (dot != null) {
-                Box(Modifier.size(8.dp).background(dot, CircleShape))
+                Box(Modifier.size(7.dp).background(dot, CircleShape))
                 Spacer(Modifier.width(8.dp))
             }
-            Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, color = ac)
+            Text(
+                text.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.6.sp
+                ),
+                color = ac
+            )
         }
     }
 }
 
 @Composable
 fun LiquidGlassStatusPill(status: ServerStatus, modifier: Modifier = Modifier) {
-    val c = LocalGlassColors.current
-    // Light OFFLINE: neutral #F0F1F2 pill, #6B6B6B text, subtle solid red dot.
-    // Never a dark-gray pill — that reads as disabled.
-    if (!c.isDark && status == ServerStatus.STOPPED) {
-        Box(
-            modifier = modifier
-                .clip(RoundedCornerShape(GlassShapes.pill))
-                .background(Color(0xFFF0F1F2))
-                .border(1.dp, Color(0xFF111418).copy(alpha = 0.06f), RoundedCornerShape(GlassShapes.pill))
-        ) {
-            Row(
-                Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(Modifier.size(8.dp).background(c.error, CircleShape))
-                Spacer(Modifier.width(8.dp))
+    val (dot, label) = when (status) {
+        ServerStatus.RUNNING -> DotGreen to "SERVER RUNNING"
+        ServerStatus.STARTING -> DotAmber to "STARTING…"
+        ServerStatus.ERROR -> DotRed to "SERVER ERROR"
+        ServerStatus.STOPPED -> DotRed to "SERVER OFFLINE"
+    }
+    LiquidGlassSurface(modifier = modifier, level = GlassLevel.L1, radius = GlassShapes.pill) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(7.dp).background(dot, CircleShape))
+            Spacer(Modifier.width(8.dp))
+            AnimatedContent(label, transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) }, label = "statusTxt") {
                 Text(
-                    "SERVER OFFLINE",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF6B6B6B)
+                    it,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.6.sp
+                    ),
+                    color = if (status == ServerStatus.RUNNING) DotGreen else Color.White.copy(alpha = 0.60f)
                 )
             }
         }
-        return
     }
-    val (dot, label, accent) = when (status) {
-        ServerStatus.RUNNING -> Triple(c.success, "SERVER RUNNING", c.success)
-        ServerStatus.STARTING -> Triple(c.warning, "STARTING…", c.warning)
-        ServerStatus.ERROR -> Triple(c.error, "SERVER ERROR", c.error)
-        ServerStatus.STOPPED -> Triple(c.error, "SERVER OFFLINE", c.textSecondary)
-    }
-    val animated by androidx.compose.animation.animateColorAsState(
-        dot, tween(150, easing = FastOutSlowInEasing), label = "statusDot"
-    )
-    LiquidGlassSurface(
-        modifier = modifier, level = GlassLevel.L3, radius = GlassShapes.pill,
-        glow = animated, glowAlpha = if (status == ServerStatus.STOPPED) 0.05f else 0.14f
+}
+
+// ─── Inset address bar ──────────────────────────────────────────────
+// Dark inset rgba(0,0,0,0.28), 0.09 border, radius 16, link glyph + COPY.
+
+@Composable
+fun LiquidGlassAddressBar(
+    text: String,
+    modifier: Modifier = Modifier,
+    onCopy: (() -> Unit)? = null
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color.Black.copy(alpha = 0.28f))
+            .border(1.dp, Color.White.copy(alpha = 0.09f), shape)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (status == ServerStatus.RUNNING || status == ServerStatus.STARTING) {
-                val t = rememberInfiniteTransition(label = "glow")
-                val pulse by t.animateFloat(0.35f, 1f, infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "p")
-                Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(22.dp).alpha(0.35f * pulse).background(animated.copy(alpha = 0.25f), CircleShape))
-                    Box(Modifier.size(8.dp).background(animated, CircleShape))
-                }
-            } else if (status == ServerStatus.STOPPED) {
-                Box(Modifier.size(8.dp).border(1.5.dp, c.textTertiary, CircleShape))
-            } else {
-                Box(Modifier.size(8.dp).background(animated, CircleShape))
+        Icon(PsIcons.Link, null, tint = Color.White.copy(alpha = 0.60f), modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.5.sp),
+            color = Color.White.copy(alpha = 0.85f),
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (onCopy != null) {
+            Spacer(Modifier.width(10.dp))
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
+                    .clickable(onClick = onCopy)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    "COPY",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp),
+                    color = Color.White.copy(alpha = 0.95f)
+                )
             }
-            Spacer(Modifier.width(8.dp))
-            AnimatedContent(label, transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) }, label = "statusTxt") {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = accent)
+        }
+    }
+}
+
+// ─── Stat rows: 3-col grid, 1px dividers 8% white ────────────────────
+
+@Composable
+fun LiquidGlassStatRow(
+    stats: List<Triple<String, String, String>>,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        stats.forEachIndexed { i, (value, label, _) ->
+            Column(
+                Modifier.weight(1f).padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    value,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum",
+                        color = Color.White.copy(alpha = 0.95f)
+                    )
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    label.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.4.sp
+                    ),
+                    color = Color.White.copy(alpha = 0.40f)
+                )
             }
+            if (i < stats.lastIndex) {
+                Box(Modifier.width(1.dp).height(44.dp).background(Color.White.copy(alpha = 0.08f)))
+            }
+        }
+    }
+}
+
+// ─── Section header: 10px bold uppercase micro-label ────────────────
+
+@Composable
+fun LiquidGlassSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            title.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.6.sp
+            ),
+            color = Color.White.copy(alpha = 0.30f),
+            modifier = Modifier.weight(1f)
+        )
+        if (actionLabel != null && onAction != null) {
+            Text(
+                actionLabel,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White.copy(alpha = 0.60f),
+                modifier = Modifier.clickable(onClick = onAction).padding(4.dp)
+            )
         }
     }
 }
@@ -327,25 +442,17 @@ fun LiquidGlassFeatureTile(
     modifier: Modifier = Modifier,
     iconTint: Color? = null
 ) {
-    val c = LocalGlassColors.current
-    val tint = iconTint ?: c.goldSoft
-    LiquidGlassSurface(modifier = modifier, level = GlassLevel.L2, radius = GlassShapes.card, glow = tint, glowAlpha = 0.07f, borderAlpha = 0.13f, onClick = onClick) {
+    LiquidGlassSurface(modifier = modifier, level = GlassLevel.L2, radius = GlassShapes.card, onClick = onClick) {
         Column(
             Modifier.fillMaxWidth().heightIn(min = GlassDimens.tileMin).padding(vertical = 14.dp, horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                Modifier.size(54.dp).clip(CircleShape).background(tint.copy(alpha = 0.12f))
-                    .border(1.dp, c.borderSoft, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = tint, modifier = Modifier.size(25.dp))
-            }
+            LiquidIconTile(icon = icon, tileSize = 52.dp, glyphSize = 22.dp)
             Spacer(Modifier.height(10.dp))
-            Text(title, style = MaterialTheme.typography.titleSmall, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = 0.95f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(3.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.60f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -362,14 +469,11 @@ fun LiquidGlassListItem(
     selected: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val c = LocalGlassColors.current
     LiquidGlassSurface(
         modifier = modifier.fillMaxWidth(),
-        level = if (selected) GlassLevel.L4 else GlassLevel.L2,
+        level = if (selected) GlassLevel.L2 else GlassLevel.L1,
         radius = GlassShapes.small,
-        glow = if (selected) c.gold else null,
-        glowAlpha = 0.10f,
-        borderAlpha = if (selected) 0.17f else 0.13f,
+        borderAlpha = if (selected) 0.16f else 0.10f,
         onClick = onClick
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -378,10 +482,10 @@ fun LiquidGlassListItem(
                 Spacer(Modifier.width(12.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(title, style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = 0.95f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (subtitle != null) {
                     Spacer(Modifier.height(3.dp))
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.60f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (trailing != null) {
@@ -399,32 +503,18 @@ fun LiquidGlassIconCircle(
     tint: Color? = null,
     size: Dp = 44.dp
 ) {
-    val c = LocalGlassColors.current
-    // Default (no explicit tint): white wash + white icon on dark;
-    // flat light-gray + charcoal on light. Explicit tints keep their wash.
-    val t = tint ?: if (c.isDark) c.goldSoft else Color(0xFF222222)
-    if (c.isDark || tint != null) {
-        Box(
-            modifier = modifier.size(size).clip(CircleShape)
-                .background(t.copy(alpha = 0.13f))
-                .border(1.dp, c.border, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = t, modifier = Modifier.size(size * 0.48f))
-        }
-        return
-    }
-    Box(
-        modifier = modifier.size(size).clip(CircleShape)
-            .background(Color(0xFFF0F1F3))
-            .border(1.dp, c.border, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, null, tint = t, modifier = Modifier.size(size * 0.48f))
-    }
+    LiquidIconTile(
+        icon = icon,
+        modifier = modifier,
+        tileSize = size,
+        glyphSize = size * 0.46f
+    )
 }
 
-// ─── Activity item ──────────────────────────────────────────────────
+// ─── Activity item ────────────────────────────────────────────────
+// 36px flat glass icon + 12.5 semibold title + 11 muted time.
+// [flat]=true renders a transparent row for use inside one continuous
+// glass container with hairline dividers (no card-in-card).
 
 @Composable
 fun LiquidGlassActivityItem(
@@ -432,21 +522,45 @@ fun LiquidGlassActivityItem(
     time: String,
     dot: Color,
     modifier: Modifier = Modifier,
+    flat: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val c = LocalGlassColors.current
-    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L2, radius = GlassShapes.small, glow = dot, glowAlpha = 0.06f, borderAlpha = 0.12f, onClick = onClick) {
-        Row(Modifier.fillMaxWidth().heightIn(min = GlassDimens.rowMin).padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(42.dp).clip(CircleShape).background(dot.copy(alpha = 0.13f)).border(1.dp, c.borderSoft, CircleShape), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(9.dp).background(dot, CircleShape))
-            }
+    val row = @Composable {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = GlassDimens.rowMin).padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            LiquidIconTile(icon = PsIcons.Activity, tileSize = 36.dp, glyphSize = 16.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = Color.White.copy(alpha = 0.95f), maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
                 Spacer(Modifier.height(3.dp))
-                Text(time, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                Text(
+                    time,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = Color.White.copy(alpha = 0.40f)
+                )
             }
-            Text("›", style = MaterialTheme.typography.headlineMedium, color = c.textTertiary)
+            Text(
+                "›",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White.copy(alpha = 0.30f)
+            )
+        }
+    }
+    if (flat) {
+        Box(
+            modifier = modifier.fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            contentAlignment = Alignment.CenterStart
+        ) { row() }
+    } else {
+        LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L1, radius = GlassShapes.small, onClick = onClick) {
+            row()
         }
     }
 }
@@ -462,27 +576,26 @@ fun LiquidGlassSearchBar(
     leading: ImageVector? = null,
     onClear: (() -> Unit)? = null
 ) {
-    val c = LocalGlassColors.current
-    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L2, radius = GlassShapes.button) {
+    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L1, radius = GlassShapes.button) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
             if (leading != null) {
-                Icon(leading, null, tint = c.textTertiary, modifier = Modifier.size(20.dp))
+                Icon(leading, null, tint = Color.White.copy(alpha = 0.35f), modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
             }
             BasicTextField(
                 value = value, onValueChange = onValue, singleLine = true,
-                textStyle = LocalTextStyle.current.copy(color = c.textPrimary),
-                cursorBrush = SolidColor(c.gold),
+                textStyle = LocalTextStyle.current.copy(color = Color.White.copy(alpha = 0.95f)),
+                cursorBrush = SolidColor(Color.White.copy(alpha = 0.9f)),
                 modifier = Modifier.weight(1f),
                 decorationBox = { inner ->
-                    if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = c.textTertiary)
+                    if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.35f))
                     inner()
                 }
             )
             if (value.isNotEmpty() && onClear != null) {
                 Spacer(Modifier.width(8.dp))
                 Box(Modifier.clip(CircleShape).clickable(onClick = onClear).padding(4.dp)) {
-                    Text("✕", color = c.textTertiary)
+                    Text("✕", color = Color.White.copy(alpha = 0.35f))
                 }
             }
         }
@@ -498,20 +611,19 @@ fun LiquidGlassTextField(
     leading: ImageVector? = null,
     singleLine: Boolean = true
 ) {
-    val c = LocalGlassColors.current
-    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L2, radius = GlassShapes.small) {
+    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L1, radius = GlassShapes.small) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
             if (leading != null) {
-                Icon(leading, null, tint = c.textTertiary, modifier = Modifier.size(20.dp))
+                Icon(leading, null, tint = Color.White.copy(alpha = 0.35f), modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
             }
             BasicTextField(
                 value = value, onValueChange = onValue, singleLine = singleLine,
-                textStyle = LocalTextStyle.current.copy(color = c.textPrimary),
-                cursorBrush = SolidColor(c.gold),
+                textStyle = LocalTextStyle.current.copy(color = Color.White.copy(alpha = 0.95f)),
+                cursorBrush = SolidColor(Color.White.copy(alpha = 0.9f)),
                 modifier = Modifier.weight(1f),
                 decorationBox = { inner ->
-                    if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = c.textTertiary)
+                    if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.35f))
                     inner()
                 }
             )
@@ -528,32 +640,14 @@ fun LiquidGlassChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val c = LocalGlassColors.current
-    // Selected chip must look interactive: dark L4 glow on AMOLED,
-    // solid #111111 + white text in light (a white-on-white chip vanishes).
-    if (!c.isDark && selected) {
-        Box(
-            modifier = modifier
-                .clip(RoundedCornerShape(GlassShapes.pill))
-                .background(Color(0xFF111111))
-                .clickable(onClick = onClick)
-        ) {
-            Text(
-                label, style = MaterialTheme.typography.labelLarge,
-                color = Color.White,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
-            )
-        }
-        return
-    }
     LiquidGlassSurface(
-        modifier = modifier, level = if (selected) GlassLevel.L4 else GlassLevel.L2,
-        radius = GlassShapes.pill, glow = if (selected) c.gold else null, glowAlpha = 0.16f,
+        modifier = modifier, level = if (selected) GlassLevel.L2 else GlassLevel.L1,
+        radius = GlassShapes.pill, borderAlpha = if (selected) 0.16f else 0.10f,
         onClick = onClick
     ) {
         Text(
             label, style = MaterialTheme.typography.labelLarge,
-            color = if (selected) c.goldSoft else c.textSecondary,
+            color = if (selected) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.60f),
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
         )
     }
@@ -576,8 +670,8 @@ fun LiquidGlassSegmentedControl(
                             if (sel) Modifier.background(
                                 Brush.verticalGradient(
                                     listOf(
-                                        LocalGlassColors.current.gold.copy(alpha = 0.28f),
-                                        LocalGlassColors.current.gold.copy(alpha = 0.14f)
+                                        Color.White.copy(alpha = 0.20f),
+                                        Color.White.copy(alpha = 0.07f)
                                     )
                                 )
                             ) else Modifier
@@ -586,14 +680,14 @@ fun LiquidGlassSegmentedControl(
                         .padding(vertical = 9.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(o, style = MaterialTheme.typography.labelLarge, color = if (sel) LocalGlassColors.current.goldSoft else LocalGlassColors.current.textSecondary)
+                    Text(o, style = MaterialTheme.typography.labelLarge, color = if (sel) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.60f))
                 }
             }
         }
     }
 }
 
-// ─── Switch (custom, 200ms) ─────────────────────────────────────────
+// ─── Switch (custom, 200ms, monochrome) ─────────────────────────────
 
 @Composable
 fun LiquidGlassSwitch(
@@ -601,18 +695,14 @@ fun LiquidGlassSwitch(
     onChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val c = LocalGlassColors.current
-    // OFF track: elevated glass on dark; solid pale gray in light so the
-    // white thumb reads (white-on-near-white is invisible).
-    val offTrack = if (c.isDark) c.surfaceL3 else Color(0xFFE5E6E8)
-    val trackTarget = if (checked) c.success.copy(alpha = 0.35f) else offTrack
+    val trackTarget = if (checked) Color.White.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.10f)
     val track by androidx.compose.animation.animateColorAsState(trackTarget, tween(GlassMotion.switchMs), label = "swTrack")
     val thumbX by animateFloatAsState(if (checked) 1f else 0f, tween(GlassMotion.switchMs, easing = FastOutSlowInEasing), label = "swX")
     Box(
         modifier = modifier.width(52.dp).height(32.dp)
             .clip(RoundedCornerShape(100.dp))
             .background(track)
-            .border(1.dp, if (checked) c.success.copy(alpha = 0.5f) else c.border, RoundedCornerShape(100.dp))
+            .border(1.dp, Color.White.copy(alpha = if (checked) 0.22f else 0.14f), RoundedCornerShape(100.dp))
             .clickable { onChange(!checked) }
             .padding(3.dp)
     ) {
@@ -621,12 +711,14 @@ fun LiquidGlassSwitch(
                 .graphicsLayer { translationX = thumbX * 20.dp.toPx() }
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.92f))
-                .border(1.dp, c.borderSoft, CircleShape)
+                .border(1.dp, Color.White.copy(alpha = 0.10f), CircleShape)
         )
     }
 }
 
-// ─── Progress ───────────────────────────────────────────────────────
+// ─── Progress (monochrome) ──────────────────────────────────────────
+// Track 0.12 white, fill #E5E5E5. No shimmer, no animation beyond the
+// value itself.
 
 @Composable
 fun LiquidGlassProgressBar(
@@ -634,17 +726,16 @@ fun LiquidGlassProgressBar(
     modifier: Modifier = Modifier,
     fill: Color? = null
 ) {
-    val c = LocalGlassColors.current
-    val f = fill ?: c.gold
+    val f = fill ?: Color(0xFFE5E5E5)
     val animated by animateFloatAsState(progress.coerceIn(0f, 1f), tween(GlassMotion.progress, easing = FastOutSlowInEasing), label = "glassProg")
     Box(
-        modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(100.dp))
-            .background(c.track).border(1.dp, c.border, RoundedCornerShape(100.dp))
+        modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(100.dp))
+            .background(Color.White.copy(alpha = 0.12f))
     ) {
         Box(
             Modifier.fillMaxWidth(animated).fillMaxHeight()
                 .clip(RoundedCornerShape(100.dp))
-                .background(Brush.horizontalGradient(listOf(f, f.copy(alpha = 0.75f))))
+                .background(f)
         )
     }
 }
@@ -659,17 +750,20 @@ fun LiquidGlassStorageCard(
     fraction: Float,
     modifier: Modifier = Modifier
 ) {
-    val c = LocalGlassColors.current
-    LiquidGlassCard(modifier = modifier, glow = c.gold, level = GlassLevel.L2) {
+    LiquidGlassCard(modifier = modifier, level = GlassLevel.L2) {
         Column(Modifier.padding(GlassDimens.s16)) {
-            Text("Storage", style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+            Text("Storage", style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = 0.95f))
             Spacer(Modifier.height(GlassDimens.s12))
-            Text(freeLabel, style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            Text(
+                freeLabel,
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                color = Color.White.copy(alpha = 0.95f)
+            )
             Spacer(Modifier.height(GlassDimens.s12))
-            LiquidGlassProgressBar(progress = fraction, fill = c.gold)
+            LiquidGlassProgressBar(progress = fraction)
             Spacer(Modifier.height(GlassDimens.s8))
-            if (usedLabel != null) Text(usedLabel, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-            if (totalLabel != null) Text(totalLabel, style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+            if (usedLabel != null) Text(usedLabel, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.60f))
+            if (totalLabel != null) Text(totalLabel, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.40f))
         }
     }
 }
@@ -681,16 +775,19 @@ fun LiquidGlassFolderCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val c = LocalGlassColors.current
     LiquidGlassCard(modifier = modifier, onClick = onClick) {
         Column(Modifier.padding(GlassDimens.s16)) {
-            Text("Shared Folders  ›", style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+            Text("Shared Folders  ›", style = MaterialTheme.typography.titleSmall, color = Color.White.copy(alpha = 0.95f))
             Spacer(Modifier.height(GlassDimens.s12))
-            Text("$count", style = MaterialTheme.typography.displayMedium, color = c.textPrimary)
+            Text(
+                "$count",
+                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                color = Color.White.copy(alpha = 0.95f)
+            )
             Spacer(Modifier.height(2.dp))
             Text(
                 if (count == 0) "No folders yet" else "$count folder${if (count == 1) "" else "s"} · $names",
-                style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis
+                style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.60f), maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -708,13 +805,11 @@ fun LiquidGlassDialog(
     secondaryLabel: String? = "Cancel",
     onDismiss: (() -> Unit)? = null
 ) {
-    val c = LocalGlassColors.current
-    // Dialogs are large surfaces → frosted in light, layered in dark.
-    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L3, radius = GlassShapes.large, glow = c.gold, glowAlpha = 0.10f, frosted = true) {
+    LiquidGlassSurface(modifier = modifier.fillMaxWidth(), level = GlassLevel.L2, radius = GlassShapes.large, frosted = true) {
         Column(Modifier.fillMaxWidth().padding(GlassDimens.s20)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+            Text(title, style = MaterialTheme.typography.titleLarge, color = Color.White.copy(alpha = 0.95f))
             Spacer(Modifier.height(8.dp))
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.60f))
             Spacer(Modifier.height(GlassDimens.s20))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (secondaryLabel != null) {
@@ -737,15 +832,14 @@ fun LiquidGlassEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    val c = LocalGlassColors.current
     Column(modifier.fillMaxWidth().padding(vertical = GlassDimens.s32), horizontalAlignment = Alignment.CenterHorizontally) {
         if (icon != null) {
-            LiquidGlassIconCircle(icon, tint = c.goldSoft, size = 56.dp)
+            LiquidIconTile(icon = icon, tileSize = 56.dp, glyphSize = 24.dp)
             Spacer(Modifier.height(GlassDimens.s16))
         }
-        Text(title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.95f))
         Spacer(Modifier.height(6.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.60f))
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(GlassDimens.s16))
             LiquidGlassButton(actionLabel, onAction, Modifier.fillMaxWidth(0.7f))
@@ -760,21 +854,32 @@ fun LiquidGlassErrorState(message: String, modifier: Modifier = Modifier, onRetr
 
 @Composable
 fun LiquidGlassLoadingRows(modifier: Modifier = Modifier, rows: Int = 4) {
-    val c = LocalGlassColors.current
     val t = rememberInfiniteTransition(label = "skel")
     val alpha by t.animateFloat(0.35f, 0.7f, infiniteRepeatable(tween(1100, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "a")
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         repeat(rows) {
             LiquidGlassSurface(level = GlassLevel.L1, radius = GlassShapes.small, modifier = Modifier.fillMaxWidth().alpha(alpha)) {
                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(c.track))
+                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha = 0.08f)))
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(Modifier.fillMaxWidth(0.6f).height(12.dp).clip(RoundedCornerShape(6.dp)).background(c.track))
-                        Box(Modifier.fillMaxWidth(0.35f).height(10.dp).clip(RoundedCornerShape(6.dp)).background(c.track))
+                        Box(Modifier.fillMaxWidth(0.6f).height(12.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.08f)))
+                        Box(Modifier.fillMaxWidth(0.35f).height(10.dp).clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha = 0.08f)))
                     }
                 }
             }
         }
     }
+}
+
+// ─── Slow monochrome spinner (loaders) ──────────────────────────────
+
+@Composable
+fun LiquidGlassSpinner(modifier: Modifier = Modifier, size: Dp = 20.dp) {
+    val angle = com.saketkhundia.pocketserver.presentation.motion.slowSpinAngle()
+    CircularProgressIndicator(
+        modifier = modifier.size(size).graphicsLayer { rotationZ = angle },
+        color = Color.White.copy(alpha = 0.9f),
+        strokeWidth = 2.dp
+    )
 }

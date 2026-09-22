@@ -1,17 +1,14 @@
 package com.saketkhundia.pocketserver.presentation.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.layout.padding
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,6 +19,9 @@ import com.saketkhundia.pocketserver.presentation.developer.DeveloperScreen
 import com.saketkhundia.pocketserver.presentation.files.FilesScreen
 import com.saketkhundia.pocketserver.presentation.glass.GlassTab
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassBottomNavigation
+import com.saketkhundia.pocketserver.presentation.glass.TabContentCrossfade
+import com.saketkhundia.pocketserver.presentation.glass.tabSwipeToNavigate
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.home.HomeScreen
 import com.saketkhundia.pocketserver.presentation.logs.LogsScreen
 import com.saketkhundia.pocketserver.presentation.media.MediaScreen
@@ -58,10 +58,10 @@ private data class TopLevel(
 )
 
 private val TopLevels = listOf(
-    TopLevel(Screen.Home, "Home", Icons.Outlined.Home),
-    TopLevel(Screen.Files, "Files", Icons.Outlined.Folder),
-    TopLevel(Screen.Activity, "Activity", Icons.AutoMirrored.Outlined.ShowChart),
-    TopLevel(Screen.Settings, "Settings", Icons.Outlined.Settings)
+    TopLevel(Screen.Home, "Home", PsIcons.Home),
+    TopLevel(Screen.Files, "Files", PsIcons.Folder),
+    TopLevel(Screen.Activity, "Activity", PsIcons.Activity),
+    TopLevel(Screen.Settings, "Settings", PsIcons.Settings)
 )
 
 private val TopRoutes = TopLevels.map { it.screen.route }.toSet()
@@ -108,14 +108,27 @@ fun AppNavGraph(navController: NavHostController, startRoute: String) {
             }
         }
     ) { inner ->
+        val currentIndex = topIndex(currentRoute).takeIf { it >= 0 } ?: 0
+        // Hoisted out of the Box modifier chain: tabSwipeToNavigate is a
+        // @Composable getter (needs density) and can't run inside modifier.
+        val swipeMod = if (showDock) Modifier.tabSwipeToNavigate(
+            currentIndex = currentIndex,
+            tabCount = TopLevels.size,
+            onSelect = { i -> navController.navigateTopLevel(TopLevels[i].screen.route) }
+        ) else Modifier
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .then(swipeMod)
+        ) {
         NavHost(
             navController = navController,
             startDestination = startRoute,
-            modifier = Modifier.padding(inner),
-            // Tab ↔ tab: subtle fade + tiny vertical lift (feels instant).
+            modifier = Modifier.fillMaxSize(),
+            // Tab ↔ tab: fadeSlideUp 0.3s ease-out (opacity 0->1, 12px->0).
             // Drill-in (top → secondary): content slides slightly left.
             // Back (secondary → top): content slides slightly right.
-            // All 200ms — almost instantaneous, never dramatic.
             enterTransition = {
                 val from = initialState.destination.route
                 val to = targetState.destination.route
@@ -144,6 +157,7 @@ fun AppNavGraph(navController: NavHostController, startRoute: String) {
             }
         ) {
             composable(Screen.Home.route) {
+                TabContentCrossfade(tabKey = Screen.Home.route) {
                 HomeScreen(
                     onOpenQr = { navController.navigate(Screen.Qr.route) },
                     onOpenFiles = { navController.navigateTopLevel(Screen.Files.route) },
@@ -152,19 +166,26 @@ fun AppNavGraph(navController: NavHostController, startRoute: String) {
                     onOpenPhotos = { navController.navigate(Screen.Photos.route) },
                     onOpenMedia = { navController.navigate(Screen.Media.route) }
                 )
+                }
             }
             composable(Screen.Files.route) {
+                TabContentCrossfade(tabKey = Screen.Files.route) {
                 FilesScreen()
+                }
             }
             composable(Screen.Activity.route) {
+                TabContentCrossfade(tabKey = Screen.Activity.route) {
                 ActivityScreen(onOpenLogs = { navController.navigate(Screen.Logs.route) })
+                }
             }
             composable(Screen.Settings.route) {
+                TabContentCrossfade(tabKey = Screen.Settings.route) {
                 SettingsScreen(
                     onOpenLogs = { navController.navigate(Screen.Logs.route) },
                     onOpenDeveloper = { navController.navigate(Screen.Developer.route) },
                     onOpenFiles = { navController.navigateTopLevel(Screen.Files.route) }
                 )
+                }
             }
             composable(Screen.Photos.route) {
                 PhotosScreen(onBack = { navController.popBackStack() })
@@ -188,6 +209,7 @@ fun AppNavGraph(navController: NavHostController, startRoute: String) {
                     }
                 })
             }
+        }
         }
     }
 }

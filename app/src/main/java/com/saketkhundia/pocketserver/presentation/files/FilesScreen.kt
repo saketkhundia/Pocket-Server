@@ -18,14 +18,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -107,6 +104,7 @@ fun FilesScreen() {
 
     Scaffold(
         containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -121,7 +119,8 @@ fun FilesScreen() {
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
         floatingActionButton = {
@@ -129,7 +128,7 @@ fun FilesScreen() {
                 onClick = { folderPicker.launch(null) },
                 size = 56.dp
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add folder", tint = LocalGlassColors.current.goldSoft)
+                Icon(com.saketkhundia.pocketserver.presentation.theme.PsIcons.Plus, contentDescription = "Add folder", tint = Color.White.copy(alpha = 0.95f))
             }
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -140,13 +139,13 @@ fun FilesScreen() {
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(PsSpacing.md)
             ) {
-                // Search — liquid glass, gold focus glow handled inside.
+                // Search — recessed liquid glass.
                 item(key = "search", contentType = "search") {
                     LiquidGlassSearchBar(
                         value = query,
                         onValue = { query = it },
                         placeholder = "Search folders…",
-                        leading = Icons.Outlined.Search,
+                        leading = com.saketkhundia.pocketserver.presentation.theme.PsIcons.Search,
                         onClear = { query = "" },
                         modifier = Modifier.animateItem()
                     )
@@ -162,7 +161,7 @@ fun FilesScreen() {
                         label = "folderList"
                     ) { empty ->
                         if (empty) {
-                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            GlassCard(modifier = Modifier.fillMaxWidth(), radius = 20.dp) {
                                 EmptyState(
                                     title = if (query.isBlank()) "No shared folders" else "No matches",
                                     subtitle = if (query.isBlank())
@@ -173,7 +172,7 @@ fun FilesScreen() {
                                 )
                             }
                         } else {
-                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            GlassCard(modifier = Modifier.fillMaxWidth(), radius = 20.dp) {
                                 Column(Modifier.padding(horizontal = PsSpacing.md, vertical = 6.dp)) {
                                     // Small lists (a handful of shared folders): tiny
                                     // per-row stagger on FIRST visit only. Revisits via
@@ -206,7 +205,7 @@ fun FilesScreen() {
                                                         Modifier.fillMaxWidth()
                                                             .padding(start = 40.dp + PsSpacing.md)
                                                             .height(1.dp)
-                                                            .background(LocalPsExtra.current.subtleBorder)
+                                                            .background(Color.White.copy(alpha = 0.06f))
                                                     )
                                                 }
                                             }
@@ -225,7 +224,7 @@ fun FilesScreen() {
                         Text(
                             "Files stay on this phone and are served only while the server runs.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.40f)
                         )
                     }
                     Spacer(Modifier.height(110.dp))

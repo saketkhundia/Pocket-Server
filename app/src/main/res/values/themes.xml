@@ -1,8 +1,13 @@
 <resources>
     <style name="Theme.PocketServer" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/splash_background</item>
-        <item name="android:statusBarColor">@color/splash_background</item>
-        <item name="android:navigationBarColor">@color/splash_background</item>
+        <!-- Transparent system bars: the floating glass dock draws over content. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
     </style>
     <color name="splash_background">#000000</color>
 </resources>

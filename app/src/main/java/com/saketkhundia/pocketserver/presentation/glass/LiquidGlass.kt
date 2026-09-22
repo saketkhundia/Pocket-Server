@@ -10,33 +10,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * LIQUID GLASS MATERIAL — one API, two intentional material systems.
+ * POCKET GLASS — one subtle material, used everywhere.
  *
- * DARK (layered): translucent base + accent glow wash + top specular +
- * darker lower edge + inner highlight + diagonal sheen (HIGH only) +
- * deep static shadow. Depth through light play on black.
+ * Flat dark frosted glass on AMOLED black. No strong gradients, no bevels,
+ * no glows, no repeated layers. Depth comes from spacing, typography,
+ * alignment and contrast — not from decoration.
  *
- * LIGHT (restrained frosted white): near-opaque white base + faint crown
- * highlight + flat 6% hairline + whisper shadow. NO blur layers, NO glow
- * washes, NO gradient rims — restraint is what keeps white glass from
- * washing out. Depth reads from bg → card → control separation.
+ * Fill (white alpha): L1 0.05 · L2 0.07 · L3 0.08 · L4 0.09.
+ * Border: L1 0.10 white, else 0.12 white (explicit overrides allowed).
+ * One subtle top highlight (0.06 white, fading over the top quarter).
+ * One soft shadow. Radius comes from the caller (cards 24, rows 16…).
  *
- * The [frosted] flag is retained for API compatibility but currently a
- * no-op: heavy blur is what made the UI washed out, so large surfaces use
- * the same quiet material, lifted only by level opacity.
- *
- * Performance: zero blur modifiers anywhere; all overlays static
- * single-draws. One background per screen, never per item.
+ * No blur modifiers anywhere: blur is expensive and invisible on a pure
+ * black page, so the material stays cheap to render while scrolling,
+ * switching tabs, or transferring files.
  */
 
 enum class GlassLevel { L1, L2, L3, L4 }
+
+/** True when [level] maps to the recessed (lightest) material. */
+fun GlassLevel.isRecessed(): Boolean = this == GlassLevel.L1
 
 @Composable
 fun LiquidGlassSurface(
@@ -48,147 +47,70 @@ fun LiquidGlassSurface(
     borderAlpha: Float? = null,
     onClick: (() -> Unit)? = null,
     contentAlignment: Alignment = Alignment.TopStart,
-    /** Retained for call-site compatibility; blur was removed (it washed out). */
     frosted: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val c = LocalGlassColors.current
-    val perf = LocalGlassPerformance.current
-    val base = when (level) {
-        GlassLevel.L1 -> c.surfaceL1
-        GlassLevel.L2 -> c.surfaceL2
-        GlassLevel.L3 -> c.surfaceL3
-        GlassLevel.L4 -> c.surfaceCta
-    }
     val shape = RoundedCornerShape(radius)
-    // Dark keeps per-level border lift; light always uses the 0.06 hairline
-    // (explicit overrides above it would print gray rims on white).
-    val borderColor = if (!c.isDark) {
-        c.border
-    } else {
-        borderAlpha?.let { c.border.copy(alpha = it) }
-            ?: when (level) {
-                GlassLevel.L1 -> c.borderSoft
-                GlassLevel.L2 -> c.border
-                GlassLevel.L3 -> c.border.copy(alpha = 0.12f)
-                GlassLevel.L4 -> c.border.copy(alpha = 0.13f)
-            }
-    }
-    val elevation = when {
-        perf == GlassPerformanceMode.LOW -> 2.dp
-        level == GlassLevel.L1 -> 0.dp
-        level == GlassLevel.L2 -> 8.dp
-        level == GlassLevel.L3 -> 14.dp
-        else -> 16.dp
-    }
-    // Shadows: deep black halo on AMOLED; barely-perceived 0.08/0.05 depth
-    // on light. A strong shadow under a white card reads as dirt, not depth.
-    val ambient = if (c.isDark) 0.50f else 0.08f
-    val spot = if (c.isDark) 0.40f else 0.05f
 
-    if (!c.isDark) {
-        // LIGHT: near-opaque white + faint crown lift + flat 6% hairline +
-        // whisper shadow. Single chain, no blur, no rims, no washes.
-        Box(
-            modifier = modifier
-                .shadow(elevation, shape, ambientColor = Color.Black.copy(alpha = ambient), spotColor = Color.Black.copy(alpha = spot))
-                .clip(shape)
-                .background(base)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.10f),
-                            Color.Transparent
-                        ),
-                        endY = 64f
-                    )
-                )
-                .border(1.dp, borderColor, shape)
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-            contentAlignment = contentAlignment
-        ) { content() }
-        return
+    val fillAlpha = when (level) {
+        GlassLevel.L1 -> 0.05f
+        GlassLevel.L2 -> 0.07f
+        GlassLevel.L3 -> 0.08f
+        GlassLevel.L4 -> 0.09f
     }
+    val defaultBorder = when (level) {
+        GlassLevel.L1 -> 0.10f
+        else -> 0.12f
+    }
+    val borderColor = borderAlpha?.let { Color.White.copy(alpha = it) }
+        ?: Color.White.copy(alpha = defaultBorder)
 
-    // DARK: full layered treatment.
-    val showGlow = perf != GlassPerformanceMode.LOW
-    val showDepth = perf == GlassPerformanceMode.HIGH || perf == GlassPerformanceMode.BALANCED
-    val showSheen = perf == GlassPerformanceMode.HIGH
+    // One soft shadow — smaller for recessed surfaces.
+    val elevation: Dp = if (level.isRecessed()) 6.dp else 10.dp
 
     Box(
         modifier = modifier
-            .shadow(elevation, shape, ambientColor = Color.Black.copy(alpha = ambient), spotColor = Color.Black.copy(alpha = spot))
+            .shadow(
+                elevation, shape,
+                ambientColor = Color.Black.copy(alpha = 0.45f),
+                spotColor = Color.Black.copy(alpha = 0.30f)
+            )
             .clip(shape)
-            .background(base)
-            .then(
-                if (showGlow && glow != null) Modifier.background(
-                    Brush.radialGradient(
-                        colors = listOf(glow.copy(alpha = glowAlpha), Color.Transparent),
-                        center = Offset(0.5f, 0.0f),
-                        radius = 520f
-                    )
-                ) else Modifier
-            )
-            // Inner top highlight: bright → transparent over first third.
-            .then(
-                if (showDepth) Modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            c.highlight.copy(alpha = if (level == GlassLevel.L1) 0.07f else 0.10f),
-                            Color.Transparent
-                        ),
-                        endY = 260f
-                    )
-                ) else Modifier
-            )
-            // Darker lower edge: transparent → depth shade at bottom.
-            .then(
-                if (showDepth) Modifier.background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, c.shade.copy(alpha = 0.55f)),
-                        startY = 420f,
-                        endY = Float.POSITIVE_INFINITY
-                    )
-                ) else Modifier
-            )
-            // Faint diagonal reflection — HIGH mode only.
-            .then(
-                if (showSheen) Modifier.background(
-                    Brush.linearGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.03f), Color.Transparent),
-                        start = Offset.Zero,
-                        end = Offset(420f, 420f)
-                    )
-                ) else Modifier
+            .background(Color.White.copy(alpha = fillAlpha))
+            .background(
+                // Subtle inner highlight: a breath of white up top, nothing more.
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.06f),
+                        Color.Transparent
+                    ),
+                    endY = 120f
+                )
             )
             .border(1.dp, borderColor, shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = contentAlignment
-    ) { content() }
+    ) {
+        content()
+    }
 }
 
 /**
- * Page background — theme-owned gradient, one shared layer per screen.
- * Dark: true black so AMOLED pixels stay off. Light: #F1F2F4 off-white
- * with a breath of white light up top. No animation, no color tint.
+ * Page background — true AMOLED black (#000000), kept mostly empty.
+ * Only an extremely subtle tonal variation up top so glass has light
+ * to catch. No visible gradient, no wallpaper.
  */
 @Composable
 fun GlassBackground(modifier: Modifier = Modifier) {
-    val c = LocalGlassColors.current
-    Box(
-        modifier = modifier.background(
-            Brush.verticalGradient(listOf(c.bg0, c.bg1, c.bg2))
-        )
-    ) {
+    Box(modifier = modifier.background(Color.Black)) {
         Box(
             Modifier.matchParentSize().background(
-                Brush.radialGradient(
+                Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (c.isDark) 0.035f else 0.05f),
+                        Color.White.copy(alpha = 0.025f),
                         Color.Transparent
                     ),
-                    center = Offset(0.5f, -0.08f),
-                    radius = 980f
+                    endY = 700f
                 )
             )
         )

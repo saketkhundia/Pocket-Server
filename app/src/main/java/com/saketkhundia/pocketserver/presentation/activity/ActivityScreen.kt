@@ -12,11 +12,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -91,10 +90,12 @@ fun ActivityScreen(onOpenLogs: () -> Unit) {
 
     Scaffold(
         containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Activity", style = MaterialTheme.typography.headlineLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         }
     ) { padding ->
@@ -109,7 +110,7 @@ fun ActivityScreen(onOpenLogs: () -> Unit) {
                     LiquidGlassSearchBar(
                         value = query, onValue = { query = it },
                         placeholder = "Search activity…",
-                        leading = Icons.Outlined.Search,
+                        leading = com.saketkhundia.pocketserver.presentation.theme.PsIcons.Search,
                         onClear = { query = "" }
                     )
                     Spacer(Modifier.height(4.dp))
@@ -170,7 +171,7 @@ fun ActivityScreen(onOpenLogs: () -> Unit) {
                             Text(
                                 "Older entries live in Server logs  →",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = Color.White.copy(alpha = 0.60f),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable(onClick = onOpenLogs)

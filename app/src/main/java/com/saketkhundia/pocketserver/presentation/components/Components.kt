@@ -1,15 +1,12 @@
 package com.saketkhundia.pocketserver.presentation.components
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,29 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.VideoFile
-import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.AudioFile
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,9 +32,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.saketkhundia.pocketserver.domain.model.ServerStatus
 import com.saketkhundia.pocketserver.presentation.glass.GlassBackground
 import com.saketkhundia.pocketserver.presentation.glass.GlassLevel
@@ -71,16 +49,26 @@ import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassIconCircle
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassLoadingRows
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassProgressBar
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSecondaryButton
+import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSectionHeader
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassStatusPill
 import com.saketkhundia.pocketserver.presentation.glass.LiquidGlassSurface
+import com.saketkhundia.pocketserver.presentation.glass.LiquidIconTile
 import com.saketkhundia.pocketserver.presentation.glass.LocalGlassColors
 import com.saketkhundia.pocketserver.presentation.theme.FileKind
+import com.saketkhundia.pocketserver.presentation.theme.LiveDot
 import com.saketkhundia.pocketserver.presentation.theme.LocalPsExtra
+import com.saketkhundia.pocketserver.presentation.theme.PsIcons
 import com.saketkhundia.pocketserver.presentation.theme.PsRadius
 import com.saketkhundia.pocketserver.presentation.theme.PsSpacing
 import com.saketkhundia.pocketserver.presentation.theme.eyebrow
 import com.saketkhundia.pocketserver.presentation.theme.mono
 import com.saketkhundia.pocketserver.presentation.theme.monoSmall
+
+private val White95 = Color.White.copy(alpha = 0.95f)
+private val White60 = Color.White.copy(alpha = 0.60f)
+private val White40 = Color.White.copy(alpha = 0.40f)
+private val White35 = Color.White.copy(alpha = 0.35f)
+private val White30 = Color.White.copy(alpha = 0.30f)
 
 // ─── Glass surfaces (liquid-glass backed) ───────────────────────────
 
@@ -90,7 +78,7 @@ fun glassColors(): Pair<Color, Color> {
     return g.surfaceL2 to g.border
 }
 
-/** Liquid-glass card. [frosted]=true only for the hero (large-surface frost). */
+/** Liquid-glass card (radius 24). [frosted] retained for compatibility. */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -109,12 +97,11 @@ fun GlassCard(
 
 @Composable
 fun statusColor(status: ServerStatus): Color {
-    val g = LocalGlassColors.current
     return when (status) {
-        ServerStatus.RUNNING -> g.success
-        ServerStatus.STARTING -> g.warning
-        ServerStatus.ERROR -> g.error
-        ServerStatus.STOPPED -> g.textTertiary
+        ServerStatus.RUNNING -> LiveDot
+        ServerStatus.STARTING -> White60
+        ServerStatus.ERROR -> White60
+        ServerStatus.STOPPED -> White35
     }
 }
 
@@ -125,27 +112,27 @@ fun statusLabel(status: ServerStatus): String = when (status) {
     ServerStatus.STOPPED -> "Offline"
 }
 
-/** Delegates to liquid-glass status pill visuals (glow dot + L3 glass). */
+/** Delegates to liquid-glass status pill visuals (mint live dot + halo). */
 @Composable
 fun StatusDot(
     status: ServerStatus,
     modifier: Modifier = Modifier,
     dotSize: Dp = 10.dp
 ) {
-    val color = statusColor(status)
-    LiquidGlassIconCircle(
-        icon = if (status == ServerStatus.RUNNING) Icons.Filled.PlayArrow else Icons.Filled.Stop,
-        tint = color, size = dotSize + 14.dp, modifier = modifier
-    )
+    val icon = when (status) {
+        ServerStatus.RUNNING -> PsIcons.Play
+        else -> PsIcons.Stop
+    }
+    LiquidGlassIconCircle(icon = icon, size = dotSize + 14.dp, modifier = modifier)
 }
 
-/** Translucent glass status pill — red/green/amber glowing dot. */
+/** Translucent glass status pill — mint live dot, grey otherwise. */
 @Composable
 fun StatusPill(status: ServerStatus, modifier: Modifier = Modifier) {
     LiquidGlassStatusPill(status = status, modifier = modifier)
 }
 
-// ─── Buttons (gold liquid-glass) ────────────────────────────────────
+// ─── Buttons (signature CTA) ────────────────────────────────────────
 
 @Composable
 fun GradientButton(
@@ -156,8 +143,9 @@ fun GradientButton(
     enabled: Boolean = true,
     loading: Boolean = false
 ) {
-    // Stop maps to danger (red glow), everything else gold.
     val danger = label.contains("Stop", ignoreCase = true)
+    // Callers now pass PsIcons directly; legacy material icons are mapped
+    // by identity fallback so every CTA glyph matches the stroke set.
     LiquidGlassButton(
         label = label, onClick = onClick, modifier = modifier,
         icon = icon, enabled = enabled, loading = loading, danger = danger
@@ -175,7 +163,7 @@ fun GlassButton(
     LiquidGlassSecondaryButton(label = label, onClick = onClick, modifier = modifier, icon = icon)
 }
 
-// ─── Quick actions → feature tiles ──────────────────────────────────
+// ─── Quick actions → 52px liquid tiles ──────────────────────────────
 
 @Composable
 fun QuickAction(
@@ -185,7 +173,6 @@ fun QuickAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val g = LocalGlassColors.current
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(PsRadius.md))
@@ -193,39 +180,27 @@ fun QuickAction(
             .padding(vertical = 6.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (g.isDark) {
-            Box(
-                modifier = Modifier.size(52.dp).clip(CircleShape)
-                    .background(g.gold.copy(alpha = 0.13f))
-                    .border(1.dp, g.border, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = g.goldSoft, modifier = Modifier.size(24.dp))
-            }
-        } else {
-            // Simple light-gray glass circle + charcoal glyph. No lens
-            // gradients, no glow — restraint keeps it crisp.
-            Box(
-                modifier = Modifier.size(52.dp).clip(CircleShape)
-                    .background(Color(0xFFF0F1F3))
-                    .border(1.dp, g.border, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = Color(0xFF222222), modifier = Modifier.size(24.dp))
-            }
-        }
+        LiquidIconTile(icon = icon, tileSize = 52.dp, glyphSize = 22.dp)
         Spacer(Modifier.height(10.dp))
-        Text(title, style = MaterialTheme.typography.titleSmall, color = g.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            color = Color(0xFFE5E5E5), maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
         Spacer(Modifier.height(2.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = g.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            color = Color(0xFF777777), maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
-// ─── Storage (gold progress) ────────────────────────────────────────
+// ─── Storage (white-grey progress) ──────────────────────────────────
 
 @Composable
 fun StorageBar(progress: Float, modifier: Modifier = Modifier) {
-    LiquidGlassProgressBar(progress = progress, modifier = modifier, fill = LocalGlassColors.current.gold)
+    LiquidGlassProgressBar(progress = progress, modifier = modifier)
 }
 
 /**
@@ -241,15 +216,12 @@ fun DialogEntrance(content: @Composable () -> Unit) {
     ) { content() }
 }
 
-// ─── Minimal server illustration (neutral line art) ───────────────────
+// ─── Minimal server illustration (white-grey line art) ──────────────
 
 @Composable
 fun ServerGraphic(modifier: Modifier = Modifier, running: Boolean = false) {
-    val g = LocalGlassColors.current
-    // White line art on dark; visible charcoal-gray on light.
-    val accent = if (g.isDark) g.goldSoft else Color(0xFF404448)
-    val dim = g.textTertiary
-    val slab = g.surfaceL3
+    val accent = White95
+    val dim = White40
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -272,12 +244,11 @@ fun ServerGraphic(modifier: Modifier = Modifier, running: Boolean = false) {
         val left = (w - slabW) / 2f
         var top = h * 0.2f
         repeat(3) { i ->
-            drawRoundRect(color = slab, topLeft = Offset(left, top), size = Size(slabW, slabH), cornerRadius = CornerRadius(6f, 6f))
+            drawRoundRect(color = Color.White.copy(alpha = 0.07f), topLeft = Offset(left, top), size = Size(slabW, slabH), cornerRadius = CornerRadius(6f, 6f))
             drawRoundRect(color = accent.copy(alpha = 0.35f), topLeft = Offset(left, top), size = Size(slabW, slabH), cornerRadius = CornerRadius(6f, 6f), style = Stroke(width = 1.5f))
             drawLine(color = dim.copy(alpha = 0.7f), start = Offset(left + slabW * 0.14f, top + slabH * 0.5f), end = Offset(left + slabW * 0.62f, top + slabH * 0.5f), strokeWidth = 2f)
             val ledOn = running || i == 2
-            drawCircle(color = if (ledOn) accent else dim.copy(alpha = 0.5f), radius = 3f, center = Offset(left + slabW * 0.78f, top + slabH * 0.5f))
-            top += slabH + h * 0.045f
+            drawCircle(color = if (ledOn) LiveDot else dim.copy(alpha = 0.5f), radius = 3f, center = Offset(left + slabW * 0.78f, top + slabH * 0.5f))
         }
     }
 }
@@ -293,7 +264,12 @@ fun AmoledBackground(modifier: Modifier = Modifier) {
 
 @Composable
 fun Eyebrow(text: String, modifier: Modifier = Modifier) {
-    Text(text.uppercase(), style = MaterialTheme.typography.eyebrow, color = LocalGlassColors.current.textTertiary, modifier = modifier)
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.eyebrow,
+        color = White30,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -304,16 +280,15 @@ fun MonoText(
     color: Color = Color.Unspecified,
     maxLines: Int = 1
 ) {
-    val g = LocalGlassColors.current
     Text(
         text,
         style = if (small) MaterialTheme.typography.monoSmall else MaterialTheme.typography.mono,
-        color = if (color == Color.Unspecified) g.textPrimary else color,
+        color = if (color == Color.Unspecified) White95 else color,
         maxLines = maxLines, overflow = TextOverflow.Ellipsis, modifier = modifier
     )
 }
 
-// ─── Sections ───────────────────────────────────────────────────────
+// ─── Sections — 10px bold uppercase micro-labels ────────────────────
 
 @Composable
 fun SectionHeader(
@@ -322,47 +297,34 @@ fun SectionHeader(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    val g = LocalGlassColors.current
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = g.textPrimary)
-        if (actionLabel != null && onAction != null) {
-            Text(actionLabel, style = MaterialTheme.typography.labelLarge, color = g.gold, modifier = Modifier.clickable(onClick = onAction).padding(PsSpacing.xs))
-        }
-    }
+    LiquidGlassSectionHeader(title = title, modifier = modifier, actionLabel = actionLabel, onAction = onAction)
 }
 
-// ─── File icons — ONE outlined family ───────────────────────────────
+// ─── File icons — PsIcons stroke set in 36px liquid tiles ───────────
 
 @Composable
 fun FileKindIcon(
     kind: FileKind,
     modifier: Modifier = Modifier,
-    containerSize: Dp = 40.dp
+    containerSize: Dp = 36.dp
 ) {
-    val g = LocalGlassColors.current
-    // Simple chip: white wash on dark; flat light-gray + charcoal on light.
-    val chipBg = if (g.isDark) g.gold.copy(alpha = 0.10f) else Color(0xFFF0F1F3)
-    val iconTint = if (g.isDark) g.goldSoft else Color(0xFF222222)
     val icon = when (kind) {
-        FileKind.Folder -> Icons.Outlined.Folder
-        FileKind.Image -> Icons.Outlined.Image
-        FileKind.Video -> Icons.Outlined.Movie
-        FileKind.Audio -> Icons.Outlined.AudioFile
-        FileKind.Pdf -> Icons.Outlined.PictureAsPdf
-        FileKind.Archive -> Icons.Outlined.Archive
-        FileKind.Code, FileKind.Document, FileKind.Unknown -> Icons.Outlined.Description
+        FileKind.Folder -> PsIcons.Folder
+        FileKind.Image -> PsIcons.Image
+        FileKind.Video -> PsIcons.Media
+        FileKind.Audio -> PsIcons.Music
+        FileKind.Pdf, FileKind.Code, FileKind.Document, FileKind.Unknown -> PsIcons.Files
+        FileKind.Archive -> PsIcons.Storage
     }
-    Box(
-        modifier = modifier.size(containerSize).clip(RoundedCornerShape(10.dp))
-            .background(chipBg)
-            .border(1.dp, g.border, RoundedCornerShape(10.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, null, tint = iconTint, modifier = Modifier.size(containerSize * 0.55f))
-    }
+    LiquidIconTile(
+        icon = icon,
+        modifier = modifier,
+        tileSize = containerSize,
+        glyphSize = (containerSize * 0.46f).coerceAtMost(17.dp).coerceAtLeast(16.dp)
+    )
 }
 
-/** Glass list row — L2 surface, stable, no per-item blur. */
+/** Glass list row — 12.5 semibold title, 11 muted subtitle, hairline. */
 @Composable
 fun FileRow(
     name: String,
@@ -372,7 +334,6 @@ fun FileRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
-    val g = LocalGlassColors.current
     Row(
         modifier = modifier.fillMaxWidth()
             .clip(RoundedCornerShape(PsRadius.md))
@@ -383,15 +344,23 @@ fun FileRow(
         FileKindIcon(kind = FileKind.of(name, isDir))
         Spacer(Modifier.width(PsSpacing.md))
         Column(Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.bodyMedium, color = g.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                name,
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                color = White95, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
             Spacer(Modifier.height(2.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = g.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                color = White40, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
         }
         if (trailing != null) {
             Spacer(Modifier.width(PsSpacing.sm))
             trailing()
         } else {
-            Icon(Icons.Filled.ChevronRight, null, tint = g.textTertiary, modifier = Modifier.size(18.dp))
+            Icon(PsIcons.ChevronRight, null, tint = White30, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -418,7 +387,7 @@ fun ErrorState(
     LiquidGlassErrorState(message = message, modifier = modifier, onRetry = onRetry)
 }
 
-/** Skeleton rows — L1 glass placeholders, gentle pulse. */
+/** Skeleton rows — recessed glass placeholders, gentle pulse. */
 @Composable
 fun LoadingRows(
     modifier: Modifier = Modifier,
@@ -432,9 +401,6 @@ fun LoadingRows(
 enum class ActivityKind { Connection, Upload, Download, Start, Stop, Error, Photo, Other }
 
 fun activityKindOf(method: String, status: Int): ActivityKind {
-    if (method == "PHOTO" || method == "POST" && status in 200..299) {
-        // Heuristic: photo uploads flagged by caller via path; keep generic here.
-    }
     if (status >= 500) return ActivityKind.Error
     return when {
         method == "START" -> ActivityKind.Start
@@ -449,35 +415,26 @@ fun activityKindOf(method: String, status: Int): ActivityKind {
 }
 
 fun activityDot(kind: ActivityKind): Color {
-    // Resolved in composition below; helper for non-composable use returns fallback.
-    return Color(0xFFF4C66A)
+    return White60
 }
 
-/** Circular glass icon — gold/green/red/purple by kind. */
+/** 36px liquid icon — all grey (only the live status dot is mint). */
 @Composable
 fun ActivityIcon(kind: ActivityKind, modifier: Modifier = Modifier) {
-    val g = LocalGlassColors.current
-    val (icon, tint) = when (kind) {
-        ActivityKind.Upload -> Icons.Filled.ArrowUpward to g.success
-        ActivityKind.Download -> Icons.Filled.ArrowDownward to g.success
-        ActivityKind.Connection -> Icons.Filled.ChevronRight to g.textSecondary
-        ActivityKind.Start -> Icons.Filled.PlayArrow to g.success
-        ActivityKind.Stop -> Icons.Filled.Stop to g.error
-        ActivityKind.Error -> Icons.Filled.ChevronRight to g.error
-        ActivityKind.Photo -> Icons.Filled.Image to g.photo
-        ActivityKind.Other -> Icons.Filled.ChevronRight to g.textSecondary
+    val icon = when (kind) {
+        ActivityKind.Upload -> PsIcons.Upload
+        ActivityKind.Download -> PsIcons.Download
+        ActivityKind.Connection -> PsIcons.ChevronRight
+        ActivityKind.Start -> PsIcons.Play
+        ActivityKind.Stop -> PsIcons.Stop
+        ActivityKind.Error -> PsIcons.ChevronRight
+        ActivityKind.Photo -> PsIcons.Photos
+        ActivityKind.Other -> PsIcons.ChevronRight
     }
-    Box(
-        modifier = modifier.size(44.dp).clip(CircleShape)
-            .background(tint.copy(alpha = 0.13f))
-            .border(1.dp, g.border, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
-    }
+    LiquidIconTile(icon = icon, tileSize = 36.dp, glyphSize = 16.dp, modifier = modifier)
 }
 
-/** Liquid-glass activity row. */
+/** Liquid-glass activity row. [flat] renders borderless rows for a single container. */
 @Composable
 fun ActivityRow(
     title: String,
@@ -485,16 +442,12 @@ fun ActivityRow(
     kind: ActivityKind,
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
+    flat: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val g = LocalGlassColors.current
     val dot = when (kind) {
-        ActivityKind.Upload, ActivityKind.Download, ActivityKind.Start -> g.success
-        ActivityKind.Stop, ActivityKind.Error -> g.error
-        ActivityKind.Photo -> g.photo
-        else -> g.gold
+        ActivityKind.Start -> LiveDot
+        else -> White60
     }
-    // Photo heuristic: title mentions photo → purple dot.
-    val resolved = if (title.contains("photo", ignoreCase = true)) g.photo else dot
-    LiquidGlassActivityItem(title = title, time = time, dot = resolved, modifier = modifier, onClick = onClick)
+    LiquidGlassActivityItem(title = title, time = time, dot = dot, modifier = modifier, flat = flat, onClick = onClick)
 }
